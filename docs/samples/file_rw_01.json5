@@ -1,0 +1,29 @@
+/*
+ * File: \ison\samples\basic_01 copy.json5
+ * Created Date: Tuesday, February 15th 2022, 12:18:25 pm
+ * Author: Christian Perwass (CR/AEC5)
+ * -----
+ * Copyright (c) 2022 Robert Bosch GmbH and its subsidiaries
+ * 
+ * All rights reserved.
+ * -----
+ */
+
+// Reading external files
+{
+    __locals__: {
+        a: "World",
+        text: "a new text",
+        file: "$read{args_01.json5}"
+    },
+
+    // this reads the file 'args_01.json5' from the same directory
+    // as this file is in, and the parses the resulting string.
+    result: "${file}",
+
+    // the key 'output' is arbitrary. The value string on the right
+    // is executed to write the result of the processing of ${file}
+    // to filename 'result.json5' in the same directory as this file.
+    output: "$write{result.json5, ${file}}"
+}
+

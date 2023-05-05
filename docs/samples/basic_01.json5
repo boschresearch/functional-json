@@ -1,0 +1,20 @@
+/*
+ * File: \ison\samples\basic_01 copy.json5
+ * Created Date: Tuesday, February 15th 2022, 12:18:25 pm
+ * Author: Christian Perwass (CR/AEC5)
+ * -----
+ * Copyright (c) 2022 Robert Bosch GmbH and its subsidiaries
+ * 
+ * All rights reserved.
+ * -----
+ */
+
+// Basic json5 example for ISON parsing
+{
+    __locals__: {
+        a: "World",
+    },
+
+    result: "Hello ${a}",
+}
+
