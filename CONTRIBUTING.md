@@ -6,8 +6,9 @@ the GitHub issues tracking system prior to any code development to coordinate
 with the project development team early in the process. Coordinating up
 front helps to avoid frustration later on.  Please follow the [coding guidelines](docs/source/develop/style-guide.md).
 
-Your contribution must be licensed under the Apache-2.0 license, the [license](LICENSE.md)
-used by this project. 
+Your contribution must be licensed under the Apache-2.0 license, the [license](LICENSE.md) used by this project. 
+
+This project uses the GitFlow branching model, which means that your pull requests must target the `develop` branch. Ideally, use branches with the name pattern `feature/[your feature]` in your own fork, which are branched from the develop branch, to develop your features. Pull requests against the `main` branch will be rejected.
 
 ## Add / retain copyright notices
 
