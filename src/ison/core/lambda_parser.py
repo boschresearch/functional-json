@@ -34,6 +34,7 @@ from .defines import (
     reLambdaFunc,
     reEscString,
     reString,
+    reLiteralString,
     reLambdaPar,
     reNamedArg,
     reVarStart,
@@ -50,7 +51,6 @@ from .cls_parser_error import (
 
 ################################################################################
 def FindLambdaScope(_sBody):
-
     lScope = []
 
     iStart = 0
@@ -75,7 +75,6 @@ def FindLambdaScope(_sBody):
 
 ################################################################################
 def NormLambdaIndices(_sBody: str, _lScope: list[list[int]]) -> Union[str, bool]:
-
     bHasPars: bool = False
     lIndices: list = []
     setIndices: set = set()
@@ -151,9 +150,9 @@ def NormLambdaIndices(_sBody: str, _lScope: list[list[int]]) -> Union[str, bool]
 
 ################################################################################
 def ConvertJsonToLambdaStrings(_sText):
-
     sNewText = re.sub(reEscString, r"$S{\1}", _sText)
     sNewText = re.sub(reString, r"$S{\1}", sNewText)
+    sNewText = re.sub(reLiteralString, r"$Sb{\1}", sNewText)
     return sNewText
 
 
@@ -161,13 +160,12 @@ def ConvertJsonToLambdaStrings(_sText):
 
 
 ################################################################################
-def ConvertLambdaToJsonStrings(_sText, *, _bInStringContext=False):
-
+def ConvertLambdaToJsonStrings(_sText, *, _bInStringContext=False, _bInStringBackContext=False):
     iQuoteCount = 0
     iEnd = 0
     sNewText = ""
     try:
-        lMatch = text.GetVarMatchList(_sText, reVarStart, lSingleArgsFuncs="S")
+        lMatch = text.GetVarMatchList(_sText, reVarStart, lSingleArgsFuncs=["S", "Sb"])
     except Exception as xEx:
         raise CParserError_ProcStr(sString=_sText, sContext="Converting lambda string to object", xChildEx=xEx)
     # endtry
@@ -198,6 +196,32 @@ def ConvertLambdaToJsonStrings(_sText, *, _bInStringContext=False):
             sNewText += _sText[iEnd : dicMatch["iStart"]]
             sNewText += sEl
             iEnd = dicMatch["iEnd"]
+
+        elif dicMatch["sFunc"] == "Sb":
+            # if the $Sb{} block is inside a string ("[...]"),
+            # the quotes need to be escaped here.
+            iQuoteCount += _sText.count("`", iEnd, dicMatch["iStart"])
+            bInString = (iQuoteCount % 2) != 0
+            sArg = dicMatch["lArgs"][0]
+            sEl: str = None
+            if bInString and _bInStringBackContext:
+                # Keep $Sb{} as is
+                sEl = f"$Sb{{{sArg}}}"
+
+            elif bInString or _bInStringBackContext:
+                sEl = f"\\`{sArg}\\`"
+
+            else:
+                # Recurse only one level down for $Sb{}.
+                # That is, $Sb{Hello $Sb{World $Sb{today}}} -> `Hello \`World $Sb{today}\``
+                sProcArg = ConvertLambdaToJsonStrings(sArg, _bInStringBackContext=True)
+                sEl = f"`{sProcArg}`"
+
+            # endif
+
+            sNewText += _sText[iEnd : dicMatch["iStart"]]
+            sNewText += sEl
+            iEnd = dicMatch["iEnd"]
         # endif
     # endfor
     sNewText += _sText[iEnd:]
@@ -210,7 +234,6 @@ def ConvertLambdaToJsonStrings(_sText, *, _bInStringContext=False):
 
 ################################################################################
 def ToLambdaString(_xLambda):
-
     sLambda = json.dumps(_xLambda)
     sLambda = ConvertJsonToLambdaStrings(sLambda)
 
@@ -222,7 +245,6 @@ def ToLambdaString(_xLambda):
 
 ################################################################################
 def ToLambdaObject(_sLambda):
-
     sLambda = ConvertLambdaToJsonStrings(_sLambda)
     xLambda = json.loads(sLambda)
 
@@ -241,7 +263,6 @@ def ToLambdaObject(_sLambda):
 # Due to the replacement in Lambda functions, there may be mulitply nested strings.
 # To handle this, the lambda parser packs strings in arguments into function blocks $S{}.
 def ToLambdaArgs(_lArgs):
-
     lArgs = []
     for xArg in _lArgs:
         if isinstance(xArg, str):
@@ -268,7 +289,6 @@ def ToLambdaArgs(_lArgs):
 
 ################################################################################
 def Parse(_xBody, _lArgs, funcProcess=None):
-
     if isinstance(_lArgs, list):
         lInArgs = _lArgs
     elif isinstance(_lArgs, tuple):

@@ -38,7 +38,7 @@ reLambdaFunc = re.compile(r"\$L\{")
 
 reString = re.compile(r"\"([^\"]*)\"")
 reEscString = re.compile(r"\\\"([^\\\"]*)\\\"")
-reLiteralString = re.compile(r"`([^`]*)`")
+reLiteralString = re.compile(r"(?<!\\)`(([^`]|\\`)*)(?<!\\)`")
 
 reLiteralArg = re.compile(r"^\s*\^")
 reUnrollArg = re.compile(r"^\s*\*\$[a-zA-Z_\{]")
