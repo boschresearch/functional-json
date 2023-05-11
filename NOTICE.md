@@ -1,6 +1,6 @@
 # List of Contributors
 
-This is the official list of Function JSON's copyright holders and authors.
+This is the official list of `functional-json` copyright holders and authors.
 
 Often employers or academic institutions have ownership over code that is
 written in certain circumstances, so please do due diligence to ensure that
