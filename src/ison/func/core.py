@@ -211,6 +211,27 @@ def AsString(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 # enddef
 
 ################################################################################
+@tooltip("Convert argument to json string")
+def AsStringBackQuote(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt != 1:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="A string object must have exactly 1 argument but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    sArg = lp.ConvertLambdaToJsonStrings(_lArgs[0], _bInStringContext=True)
+    xResult = f"`{sArg}`"
+
+    return xResult, True
+
+
+# enddef
+
+################################################################################
 @tooltip("Explicit lambda call: first argument is the function, the rest are list of arguments")
 def LambdaCall(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
@@ -1396,6 +1417,7 @@ __ison_functions__ = {
     # Special functions
     "*": {"funcExec": ToStruct, "bLiteralArgs": False},
     "S": {"funcExec": AsString, "bLiteralArgs": True},
+    "Sb": {"funcExec": AsStringBackQuote, "bLiteralArgs": True},
     "print": {"funcExec": Print, "bLiteralArgs": False},
     "set-log-path": {"funcExec": SetLogPath, "bLiteralArgs": False},
 }

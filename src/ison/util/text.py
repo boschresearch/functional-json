@@ -35,7 +35,6 @@ from ..core.cls_parser_error import CParserError_Message, CParserError_ProcArgSt
 # _sEndChar defines the end character.
 # If a balanced end character cannot be found, None is returned.
 def FindBalancedChar(_sValue, _iStartIdx, _sEndChar):
-
     iStartCnt = 1
     sStartChar = _sValue[_iStartIdx]
 
@@ -71,7 +70,6 @@ def FindBalancedChar(_sValue, _iStartIdx, _sEndChar):
 # For example, the string "a, (b, c), d" is split into ["a", "(b, c)", "d"].
 # All types of brackets are taken into account "()", "[]", "{}"
 def SplitArgs(_sValue, sSplitChar=","):
-
     lArgs = []
     sOpen = "([{"
     sClose = ")]}"
@@ -157,7 +155,6 @@ def SplitArgs(_sValue, sSplitChar=","):
 # Split a variable path, honoring embedded functions.
 # For example, "id:!ref(id:hello:name):value" is split into ["id", "!ref(id:hello:name)", "value"]
 def SplitVarPath(_sPath):
-
     lArgs, lEndIdx = SplitArgs(_sPath, sSplitChar=":")
     return lArgs
 
@@ -173,7 +170,6 @@ def SplitVarPath(_sPath):
 #   {"sFunc": "fab", "lArgs": ["cameras"], "iStart": 40, "iEnd": 52}
 # ]
 def GetVarMatchList(_sValue, _reVarStart, *, lSingleArgsFuncs=[]):
-
     lMatch = []
     iSearchIdx = 0
     while True:
@@ -229,7 +225,6 @@ def GetVarMatchList(_sValue, _reVarStart, *, lSingleArgsFuncs=[]):
 
 ################################################################################
 def HighlightElementString(_lData, _iIdx, _sSep):
-
     lStr = []
     for i, xVal in enumerate(_lData):
         if i == _iIdx:
@@ -255,7 +250,6 @@ def HighlightStringPart(_sString, _iStart, _iEnd):
 
 ################################################################################
 def ToString(_xValue, *, iIndent=None):
-
     if isinstance(_xValue, dict) or isinstance(_xValue, list) or isinstance(_xValue, tuple):
         return json.dumps(_xValue, indent=iIndent)
     else:
@@ -274,21 +268,30 @@ def StripLiteralString(_sValue):
 
 # enddef
 
+
 ################################################################################
 # Strip a string off start and end string char and convert \` to `
 def StripString(_sValue, _sChar):
+    sEscChar = f"\\{_sChar}"
 
-    if not isinstance(_sValue, str) or len(_sValue) < 2 or _sValue[0] != _sChar:
+    if not isinstance(_sValue, str) or len(_sValue) < 2:
         return _sValue
     # endif
 
-    iClosedIdx = FindBalancedChar(_sValue, 0, _sChar)
-    if iClosedIdx + 1 == len(_sValue):
-        sValue = _sValue[1:iClosedIdx]
-        sValue = sValue.replace(f"\\{_sChar}", _sChar)
-
+    if _sValue.startswith(sEscChar) and _sValue.endswith(sEscChar):
+        sInner = _sValue[2:-2]
+        sValue = f"{_sChar}{sInner}{_sChar}"
+    elif _sValue[0] != _sChar:
+        return _sValue
     else:
-        sValue = _sValue
+        iClosedIdx = FindBalancedChar(_sValue, 0, _sChar)
+        if iClosedIdx + 1 == len(_sValue):
+            sValue = _sValue[1:iClosedIdx]
+            sValue = sValue.replace(f"\\{_sChar}", _sChar)
+
+        else:
+            sValue = _sValue
+        # endif
     # endif
 
     return sValue
