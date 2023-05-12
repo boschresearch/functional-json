@@ -1,5 +1,7 @@
 # Functional JSON (ISON Parser)
 
+**Check out the `stable` branch for the latest stable version**
+
 The ISON language is a functional programming language that lives within the JSON or JSON5 syntax specification. That is, every ISON script file can be read as a standard JSON file. The ISON syntax only appears in strings within the JSON file. 
 
 ## Purpose of the project
