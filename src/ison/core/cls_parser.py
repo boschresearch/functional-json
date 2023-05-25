@@ -75,10 +75,8 @@ from .cls_parser_trace import CWarning, CWarningList, EWarningType, EParseContex
 
 
 class CParser:
-
     ################################################################################
     def __init__(self, _dicConstVars, dicRefVars=None, sImportPath=None, dicRtVars=None, setRtVarsEval=None):
-
         self.dicVarData = copy.deepcopy(_dicConstVars)
         if dicRefVars is not None:
             self.dicVarData.update(dicRefVars)
@@ -145,7 +143,6 @@ class CParser:
 
     ################################################################################
     def RegisterFunctionModule(self, _xModule):
-
         if not hasattr(_xModule, "__ison_functions__"):
             raise Exception("Given function module does not have function declarations in '__ison_functions__'")
         # endif
@@ -191,7 +188,6 @@ class CParser:
     def SetLogFilePath(
         self, *, _xPath: Union[Path, list, str, tuple] = None, _bCreate: bool = False, _bEnable: bool = True
     ) -> Path:
-
         if _bEnable is False:
             self.pathLog = None
             return
@@ -225,7 +221,6 @@ class CParser:
 
     ################################################################################
     def LogString(self, _sText: str):
-
         if self.pathLog is None:
             sys.stdout.write(_sText + "\n")
             sys.stdout.flush()
@@ -243,7 +238,6 @@ class CParser:
 
     ################################################################################
     def ProvideVariables(self):
-
         if "@rtv" not in self.dicVarData:
             self.ClearVarRuntime()
         # endif
@@ -268,7 +262,6 @@ class CParser:
 
     ################################################################################
     def AddRuntimeVars(self, *, _dicRtVars: dict, _setRtVarsEval: set, _bCopyData: bool = False):
-
         if isinstance(_dicRtVars, dict) and len(_dicRtVars) > 0:
             data.UpdateDict(
                 self.dicVarData["@rtv"],
@@ -298,7 +291,6 @@ class CParser:
 
     ################################################################################
     def GetRuntimeVars(self, _bCopy: bool = True):
-
         if _bCopy is True:
             return copy.deepcopy(self.dicVarData["@rtv"])
         else:
@@ -309,7 +301,6 @@ class CParser:
 
     ################################################################################
     def GetRuntimeVarEvalSet(self, _bCopy: bool = True):
-
         if _bCopy is True:
             return copy.deepcopy(self.dicVarData["@rtv-eval"])
         else:
@@ -377,7 +368,6 @@ class CParser:
 
     ################################################################################
     def AddWarning(self, _eType: EWarningType, _sKey: str):
-
         sCtx = self._GetParseContextString()
         self.xWarnings.Add(CWarning(_eType=_eType, _sKey=_sKey, _sCtx=sCtx))
 
@@ -385,7 +375,6 @@ class CParser:
 
     ################################################################################
     def _EnterParseContext(self, _eCtx: EParseContext, _sValue: str = "", _lData: list = None, _iData: int = None):
-
         self.lParseContext.append(CParseContextElement(eContext=_eCtx, sValue=_sValue, lData=_lData, iData=_iData))
 
     # enddef
@@ -400,7 +389,6 @@ class CParser:
 
     ################################################################################
     def _GetParseContextString(self):
-
         sCtx = ""
         xPC: CParseContextElement
 
@@ -476,7 +464,6 @@ class CParser:
     ################################################################################
     # Get Reference string to element in Var Data
     def GetVarDataRef(self, _lPath, *, bLiteral=False):
-
         # Check whether path exists
         xEl = self.dicVarData
         for sKey in _lPath:
@@ -546,7 +533,6 @@ class CParser:
         dicFuncGlobals=None,
         dicFuncLocals=None,
     ):
-
         sSelfIgnoreImport = self.bIgnoreImport
         self.bIgnoreImport = bIgnoreImport
 
@@ -646,10 +632,8 @@ class CParser:
 
     ################################################################################
     def _PreProcess(self, _xData):
-
         dicPre = _xData.get("__pre__")
         if dicPre is not None:
-
             self._EnterParseContext(EParseContext.PRE)
 
             # keep globals of pre-block for second pass
@@ -657,20 +641,21 @@ class CParser:
 
             # update data block with pre-processed block
             for sId, xPreEl in xPreResult.items():
-
                 if (
                     sId.startswith("__")
                     and sId in _xData
                     and isinstance(_xData[sId], dict)
                     and isinstance(xPreEl, dict)
                 ):
-
                     data.AssertDisjunctVarDicts(xPreEl, _xData[sId], "__pre__{{{0}}}".format(sId), sId)
                     _xData[sId].update(xPreEl)
                 else:
                     _xData[sId] = xPreEl
                 # endif
             # endfor
+
+            # Remove preprocess block
+            del _xData["__pre__"]
 
             self._ExitParseContext()
         # endif
@@ -679,7 +664,6 @@ class CParser:
 
     ################################################################################
     def ApplyIncludes(self, _xData, *, sImportPath: str, lIncHist: Optional[list] = None):
-
         lIncs = _xData.get("__includes__")
         if lIncs is None:
             return
@@ -744,7 +728,6 @@ class CParser:
 
     ################################################################################
     def ApplyDataVariables(self, _xData):
-
         lKeys = self._DoApplyDataVariables(_xData)
         if self._DoApplyIncludesForDataVariables(_xData) is True:
             lAddKeys = self._DoApplyDataVariables(_xData)
@@ -761,7 +744,6 @@ class CParser:
 
     ################################################################################
     def _DoApplyIncludesForDataVariables(self, _xData):
-
         lDataVars = [
             "__eval_globals__",
             "__globals__",
@@ -787,7 +769,6 @@ class CParser:
 
     ################################################################################
     def _AssertValidTagsInVarDef(self, _dicVars: dict, _sWhere: str):
-
         lInvalidVarTags = [
             x
             for x in _dicVars
@@ -813,7 +794,6 @@ class CParser:
 
     ################################################################################
     def _AssertValidTags(self, _dicVars: dict, _sWhere: str):
-
         lInvalidSpecialTags = [x for x in _dicVars if x.startswith("__") and x not in self.lValidSpecialTags]
         iInvalidCnt = len(lInvalidSpecialTags)
         if iInvalidCnt == 0:
@@ -834,7 +814,6 @@ class CParser:
 
     ################################################################################
     def _DoApplyDataVariables(self, _xData):
-
         lKeys = {"rtv": [], "globals": [], "locals": [], "func-glo": [], "func-loc": []}
 
         if "__eval_globals__" in _xData:
@@ -1158,14 +1137,12 @@ class CParser:
 
     ################################################################################
     def InnerProcess(self, _xData, bRemoveGlobals=False, lPath=None):
-
         # Provide variable dictionaries if they are not defined
         self.ProvideVariables()
 
         bIsProcessed = True
 
         if isinstance(_xData, dict):
-
             # Load includes if any
             self.ApplyIncludes(_xData, sImportPath=self.sImportPath)
 
@@ -1247,7 +1224,6 @@ class CParser:
     ################################################################################
     # Process a dictionary
     def _ProcessDict(self, _dicData, *, lPath=None):
-
         # The output processed dictionary
         dicResult = {}
         bIsProcessed = True
@@ -1305,7 +1281,6 @@ class CParser:
 
     ################################################################################
     def _ProcessDictItem(self, _dicResult, _sObjId, _xData, lPath=None):
-
         # if the object id is a special key word, ignore the content
         # for example, locals, globals and pre elements are not processed here
         if _sObjId.startswith("__"):
@@ -1454,7 +1429,6 @@ class CParser:
                     # Use keys of dictionary as new object ids and the elements
                     # as data in the variable data for the current match.
                     for sKey, xEl in xVarData.items():
-
                         sNewObjId = _sObjId[0 : dicMatch.get("iStart")] + sKey + _sObjId[dicMatch.get("iEnd") :]
 
                         # sCtxId = sCtxIdBase = "@context"
@@ -1506,7 +1480,6 @@ class CParser:
 
     ################################################################################
     def _ProcessList(self, _lData):
-
         lResult = []
         bIsProcessed = True
 
@@ -1545,7 +1518,6 @@ class CParser:
     ################################################################################
     # Check whether string contains a variable ${[...]}
     def _HasVar(self, _sValue):
-
         if not isinstance(_sValue, str):
             return False
         # endif
@@ -1557,7 +1529,6 @@ class CParser:
 
     ################################################################################
     def _ProcessString(self, _sData):
-
         # Find all variable matches
         try:
             lMatch = text.GetVarMatchList(_sData, self.reVarStart)
@@ -1669,12 +1640,10 @@ class CParser:
 
     ################################################################################
     def _ProcessArgs(self, _lArgs):
-
         lVarIsProc = []
         lVarData = []
 
         for iArgIdx, sArg in enumerate(_lArgs):
-
             self._EnterParseContext(EParseContext.ARG, sArg)
             # dummy loop to enable break to jump to end of while
             while True:
@@ -1724,7 +1693,6 @@ class CParser:
 
                 xMatch = reNamedArg.match(sArg)
                 if xMatch is not None:
-
                     sKey = xMatch.group("name")
                     sValue = xMatch.group("value")
 
@@ -1795,7 +1763,6 @@ class CParser:
 
     ################################################################################
     def _ProcessVarMatch(self, _dicMatch):
-
         if _dicMatch is None:
             return None
         # endif
@@ -1834,7 +1801,6 @@ class CParser:
 
     ################################################################################
     def ExecFunc(self, _sFunc, *_tArgs):
-
         lArgs = list(_tArgs)
         lArgIsProc = [True for x in lArgs]
         xResult, bIsLiteral = self._ProcessFunc(_sFunc, lArgs, lArgIsProc)
@@ -1845,7 +1811,6 @@ class CParser:
 
     ################################################################################
     def _ProcessFunc(self, _sFunc, _lArgs, _lArgIsProc):
-
         funcExec = self.dicFunc.get(_sFunc)
         if funcExec is None:
             lParts = _sFunc.split(".")
@@ -1867,7 +1832,6 @@ class CParser:
 
     ################################################################################
     def _ProcVar(self, _dicVar, _setVarEval, _sKey):
-
         bFound = False
         xNewVal = None
 
@@ -1895,7 +1859,6 @@ class CParser:
 
     ################################################################################
     def _GetVar(self, _xData, _sKey: str):
-
         bFound = False
         bHasVars = False
         xNewVal = None
@@ -1941,7 +1904,6 @@ class CParser:
 
     ################################################################################
     def ProcessRefPath(self, _xValue, _lMatch: list, _iMatchIdx: int):
-
         if _xValue is None:
             return None, False
         # endif
@@ -2076,7 +2038,6 @@ class CParser:
 
     #####################################################################################################
     def _ProcessRefPathListKey(self, _lData, _xKey, _lMatch, _iMatchIdx):
-
         try:
             iIdx = int(_xKey)
         except Exception:
@@ -2108,7 +2069,6 @@ class CParser:
             # endtry
 
         else:
-
             if isinstance(_xKey, str):
                 xSliceMatch = self.reSlice.search(_xKey, 0)
 
