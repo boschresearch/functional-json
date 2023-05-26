@@ -435,6 +435,7 @@ def _DoRandSeed(_xParser, _lArgs, *, sFuncName):
     # endif
 
     xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+    iArgCnt = len(lArgs)
 
     xSeed = None
     if iArgCnt == 1:
@@ -465,6 +466,7 @@ def _DoRandUniform(_xParser, _lArgs, *, sFuncName):
     # endif
 
     xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+    iArgCnt = len(lArgs)
 
     try:
         fMin = convert.ToFloat(lArgs[0])
@@ -493,6 +495,7 @@ def _DoRandUniformInt(_xParser, _lArgs, *, sFuncName):
     # endif
 
     xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+    iArgCnt = len(lArgs)
 
     try:
         iMin = convert.ToInt(lArgs[0])
@@ -519,7 +522,7 @@ def _RandomSelectInDict(_dicVal: dict, _xGen: random.Random):
             dicSel[sKey] = _xGen.choice(xValue)
 
         elif isinstance(xValue, dict):
-            dicSel[sKey] = _RandomSelectInDict(xValue)
+            dicSel[sKey] = _RandomSelectInDict(xValue, _xGen)
 
         else:
             dicSel[sKey] = xValue
@@ -545,6 +548,7 @@ def _DoRandZwicky(_xParser, _lArgs, *, sFuncName):
     # endif
 
     xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+    iArgCnt = len(lArgs)
 
     dicVal = lArgs[0]
     if not isinstance(dicVal, dict):
@@ -612,6 +616,7 @@ def _DoRandSample(_xParser, _lArgs, *, sFuncName):
 
     xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
 
+    iArgCnt = len(lArgs)
     xData = lArgs[0]
 
     try:
@@ -698,6 +703,7 @@ def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
     # endif
 
     xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+    iArgCnt = len(lArgs)
 
     try:
         iMin: int = convert.ToInt(lArgs[0])
