@@ -75,10 +75,28 @@ from .cls_parser_trace import CWarning, CWarningList, EWarningType, EParseContex
 
 
 class CParser:
+    @property
+    def dicFuncStorage(self):
+        return self.dicVarData["@func-storage"]
+
+    # enddef
+
     ################################################################################
-    def __init__(self, _dicConstVars, dicRefVars=None, sImportPath=None, dicRtVars=None, setRtVarsEval=None):
-        self.dicVarData = copy.deepcopy(_dicConstVars)
-        if dicRefVars is not None:
+    def __init__(
+        self,
+        _dicConstVars: dict,
+        dicRefVars: dict = None,
+        sImportPath: str = None,
+        dicRtVars: dict = None,
+        setRtVarsEval: set = None,
+    ):
+        if isinstance(_dicConstVars, dict):
+            self.dicVarData = copy.deepcopy(_dicConstVars)
+        else:
+            self.dicVarData = {}
+        # endif
+
+        if isinstance(dicRefVars, dict):
             self.dicVarData.update(dicRefVars)
         # endif
 
@@ -94,6 +112,9 @@ class CParser:
         self.Clear()
         self.ClearVarRuntime()
         self.AddRuntimeVars(_dicRtVars=dicRtVars, _setRtVarsEval=setRtVarsEval)
+
+        # Initialize internal storage for functions
+        self.dicVarData["@func-storage"] = {}
 
         self.pathLog: Path = None
 

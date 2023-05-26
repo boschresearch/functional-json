@@ -27,7 +27,9 @@
 import math
 import copy
 import random
+import re
 from pathlib import Path
+from typing import Tuple
 
 from ..util import io
 from ..util import convert
@@ -46,7 +48,6 @@ def tooltip(sTooltip):
 ################################################################################
 @tooltip("Calculate sum of all arguments")
 def SumValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -109,7 +110,6 @@ def SumValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Calculate difference between the two arguments")
 def SubValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -172,7 +172,6 @@ def SubValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Evalute product of all arguments")
 def ProdValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -255,10 +254,10 @@ def ProdValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Evalute modulus of first argument with second")
 def ModValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -317,9 +316,28 @@ def ModValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
-################################################################################
-def _DoRandSeed(_xParser, _lArgs, *, sFuncName):
 
+################################################################################
+def _ProvideRndGen(_xParser, _iGenId: int, _iSeed: int) -> random.Random:
+    dicRndGen = _xParser.dicFuncStorage.get("dicRndGen")
+    if dicRndGen is None:
+        dicRndGen = _xParser.dicFuncStorage["dicRndGen"] = {}
+    # endif
+
+    xGen = dicRndGen.get(_iGenId)
+    if xGen is None:
+        xGen = random.Random(_iSeed)
+        dicRndGen[_iGenId] = xGen
+    # endif
+
+    return xGen
+
+
+# enddef
+
+
+################################################################################
+def _DoRandGenerator(_xParser, _lArgs, *, sFuncName):
     iArgCnt = len(_lArgs)
 
     if iArgCnt > 1:
@@ -334,6 +352,100 @@ def _DoRandSeed(_xParser, _lArgs, *, sFuncName):
         # endif
     # endif
 
+    iGenId = iSeed = hash(xSeed)
+    dicRndGen = _xParser.dicFuncStorage.get("dicRndGen")
+    if dicRndGen is None:
+        dicRndGen = _xParser.dicFuncStorage["dicRndGen"] = {}
+    # endif
+
+    while iGenId in dicRndGen:
+        iGenId += 1
+    # endwhile
+
+    xGen = random.Random(iSeed)
+    dicRndGen[iGenId] = xGen
+
+    return f":eval:rand.generator({iGenId}):[{iSeed}]"
+
+
+# enddef
+
+
+################################################################################
+def _GetRndGenDefault(_xParser) -> random.Random:
+    return _ProvideRndGen(_xParser, 0, 0)
+
+
+# enddef
+
+
+################################################################################
+def _GetRndGenFromEvalId(_xParser, _sGenEval: str) -> random.Random:
+    xMatch = re.match(r":eval:rand.generator\((?P<genid>[-\d]+)\):\[(?P<seed>[-\w]+)\]", _sGenEval)
+    if xMatch is None:
+        return None
+    # endif
+
+    # ### DEBUG ###
+    # sId = xMatch.group("genid")
+    # sSeed = xMatch.group("seed")
+    # print(f"Using random generator id[{sId}], seed[{sSeed}]")
+    # #############
+
+    iGenId = int(xMatch.group("genid"))
+    iSeed = int(xMatch.group("seed"))
+    xGen = _ProvideRndGen(_xParser, iGenId, iSeed)
+
+    return xGen
+
+
+# enddef
+
+
+################################################################################
+def _GetRndGenFromArgs(_xParser, _lArgs: list) -> Tuple[random.Random, list]:
+    if len(_lArgs) == 0:
+        xGen = _GetRndGenDefault(_xParser)
+        return xGen, _lArgs
+    # endif
+
+    if isinstance(_lArgs[0], str):
+        xGen = _GetRndGenFromEvalId(_xParser, _lArgs[0])
+        if xGen is None:
+            xGen = _GetRndGenDefault(_xParser)
+            return xGen, _lArgs
+        # endif
+
+        return xGen, _lArgs[1:]
+    # endif
+
+    xGen = _GetRndGenDefault(_xParser)
+    return xGen, _lArgs
+
+
+# enddef
+
+
+################################################################################
+def _DoRandSeed(_xParser, _lArgs, *, sFuncName):
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt > 2:
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Expect 0, 1 or 2 arguments but {iArgCnt} were given")
+    # endif
+
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
+    xSeed = None
+    if iArgCnt == 1:
+        xSeed = lArgs[0]
+        if not isinstance(xSeed, int) and not isinstance(xSeed, float) and not isinstance(xSeed, str):
+            raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Seed argument must be int, float or string")
+        # endif
+    # endif
+
+    xGen.seed(xSeed)
+    # Keep this for backward compatibility
     random.seed(xSeed)
 
     return f":eval:{sFuncName}:{_lArgs}"
@@ -341,66 +453,70 @@ def _DoRandSeed(_xParser, _lArgs, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 def _DoRandUniform(_xParser, _lArgs, *, sFuncName):
-
     xResult = None
 
     iArgCnt = len(_lArgs)
 
-    if iArgCnt != 2:
-        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Expect exactly 2 arguments but {iArgCnt} were given")
+    if iArgCnt < 2 or iArgCnt > 3:
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Expect 2 or 3 arguments but {iArgCnt} were given")
     # endif
 
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
     try:
-        fMin = convert.ToFloat(_lArgs[0])
-        fMax = convert.ToFloat(_lArgs[1])
+        fMin = convert.ToFloat(lArgs[0])
+        fMax = convert.ToFloat(lArgs[1])
 
     except Exception as xEx:
         raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Invalid argument", xChildEx=xEx)
     # endtry
 
-    xResult = random.uniform(fMin, fMax)
+    xResult = xGen.uniform(fMin, fMax)
 
     return xResult
 
 
 # enddef
+
 
 ################################################################################
 def _DoRandUniformInt(_xParser, _lArgs, *, sFuncName):
-
     xResult = None
 
     iArgCnt = len(_lArgs)
 
-    if iArgCnt != 2:
-        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Expect exactly 2 arguments but {iArgCnt} were given")
+    if iArgCnt < 2 or iArgCnt > 3:
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Expect 2 or 3 arguments but {iArgCnt} were given")
     # endif
 
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
     try:
-        iMin = convert.ToInt(_lArgs[0])
-        iMax = convert.ToInt(_lArgs[1])
+        iMin = convert.ToInt(lArgs[0])
+        iMax = convert.ToInt(lArgs[1])
 
     except Exception as xEx:
         raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Invalid argument", xChildEx=xEx)
     # endtry
 
-    xResult = random.randint(iMin, iMax)
+    xResult = xGen.randint(iMin, iMax)
 
     return xResult
 
 
 # enddef
 
-################################################################################
-def _RandomSelectInDict(_dicVal):
 
+################################################################################
+def _RandomSelectInDict(_dicVal: dict, _xGen: random.Random):
     dicSel = {}
     for sKey in _dicVal:
         xValue = _dicVal[sKey]
         if isinstance(xValue, list):
-            dicSel[sKey] = random.choice(xValue)
+            dicSel[sKey] = _xGen.choice(xValue)
 
         elif isinstance(xValue, dict):
             dicSel[sKey] = _RandomSelectInDict(xValue)
@@ -419,17 +535,18 @@ def _RandomSelectInDict(_dicVal):
 
 ################################################################################
 def _DoRandZwicky(_xParser, _lArgs, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
-    if iArgCnt != 1:
+    if iArgCnt < 1 or iArgCnt > 2:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="Function {0} expects at exactly 1 argument but {1} were given".format(sFuncName, iArgCnt),
+            sMsg="Function {0} expects at 1 or 2 arguments but {1} were given".format(sFuncName, iArgCnt),
         )
     # endif
 
-    dicVal = _lArgs[0]
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
+    dicVal = lArgs[0]
     if not isinstance(dicVal, dict):
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
@@ -438,7 +555,7 @@ def _DoRandZwicky(_xParser, _lArgs, *, sFuncName):
     # endif
 
     dicProc, bIsProc = _xParser.InnerProcess(dicVal)
-    xResult = _RandomSelectInDict(dicProc)
+    xResult = _RandomSelectInDict(dicProc, xGen)
 
     return xResult
 
@@ -448,24 +565,25 @@ def _DoRandZwicky(_xParser, _lArgs, *, sFuncName):
 
 ################################################################################
 def _DoRandChoice(_xParser, _lArgs, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
-    if iArgCnt != 1:
+    if iArgCnt < 1 or iArgCnt > 2:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="Function {0} expects at exactly 1 argument but {1} were given".format(sFuncName, iArgCnt),
+            sMsg="Function {0} expects 1 or 2 arguments but {1} were given".format(sFuncName, iArgCnt),
         )
     # endif
 
-    xVal = _lArgs[0]
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
+    xVal = lArgs[0]
 
     # dicProc, bIsProc = _xParser.InnerProcess(xVal)
     if isinstance(xVal, list):
-        xResult = random.choice(xVal)
+        xResult = xGen.choice(xVal)
 
     elif isinstance(xVal, dict):
-        sKey = random.choice(list(xVal.keys()))
+        sKey = xGen.choice(list(xVal.keys()))
         xResult = xVal[sKey]
 
     else:
@@ -483,25 +601,26 @@ def _DoRandChoice(_xParser, _lArgs, *, sFuncName):
 
 ################################################################################
 def _DoRandSample(_xParser, _lArgs, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
-    if iArgCnt < 2 or iArgCnt > 3:
+    if iArgCnt < 2 or iArgCnt > 4:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="Function {0} expects 2 or 3 arguments but {1} were given".format(sFuncName, iArgCnt),
+            sMsg="Function {0} expects 2, 3 or 4 arguments but {1} were given".format(sFuncName, iArgCnt),
         )
     # endif
 
-    xData = _lArgs[0]
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
+    xData = lArgs[0]
 
     try:
-        iSampleCnt = convert.ToInt(_lArgs[1])
+        iSampleCnt = convert.ToInt(lArgs[1])
 
     except Exception as xEx:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="The sample count must be an integer, not: {}".format(_lArgs[1]),
+            sMsg="The sample count must be an integer, not: {}".format(lArgs[1]),
             xChildEx=xEx,
         )
     # endtry
@@ -509,7 +628,7 @@ def _DoRandSample(_xParser, _lArgs, *, sFuncName):
     bUnique = True
     if iArgCnt >= 3:
         try:
-            bUnique = convert.ToBool(_lArgs[2])
+            bUnique = convert.ToBool(lArgs[2])
         except Exception as xEx:
             raise CParserError_FuncMessage(
                 sFunc=sFuncName,
@@ -524,15 +643,14 @@ def _DoRandSample(_xParser, _lArgs, *, sFuncName):
     # dicProc, bIsProc = _xParser.InnerProcess(xVal)
 
     if isinstance(xData, list):
-
         if bUnique is True:
             if len(xData) < iSampleCnt:
                 raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="The sample count is larger than the sample pool")
             # endif
-            xResult = random.sample(xData, iSampleCnt)
+            xResult = xGen.sample(xData, iSampleCnt)
 
         else:
-            lIdx = [random.randrange(len(xData)) for i in range(iSampleCnt)]
+            lIdx = [xGen.randrange(len(xData)) for i in range(iSampleCnt)]
             xResult = [xData[iIdx] for iIdx in lIdx]
         # endif
 
@@ -543,10 +661,10 @@ def _DoRandSample(_xParser, _lArgs, *, sFuncName):
             if len(lData) < iSampleCnt:
                 raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="The sample count is larger than the sample pool")
             # endif
-            lSample = random.sample(lData, iSampleCnt)
+            lSample = xGen.sample(lData, iSampleCnt)
 
         else:
-            lIdx = [random.randrange(len(lData)) for i in range(iSampleCnt)]
+            lIdx = [xGen.randrange(len(lData)) for i in range(iSampleCnt)]
             lSample = [lData[iIdx] for iIdx in lIdx]
         # endif
 
@@ -570,45 +688,46 @@ def _DoRandSample(_xParser, _lArgs, *, sFuncName):
 
 ################################################################################
 def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
-    if iArgCnt < 3 or iArgCnt > 5:
+    if iArgCnt < 3 or iArgCnt > 6:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg=f"Function {sFuncName} expects 3 to 5 arguments but {iArgCnt} were given",
+            sMsg=f"Function {sFuncName} expects 3 to 6 arguments but {iArgCnt} were given",
         )
     # endif
 
+    xGen, lArgs = _GetRndGenFromArgs(_xParser, _lArgs)
+
     try:
-        iMin: int = convert.ToInt(_lArgs[0])
+        iMin: int = convert.ToInt(lArgs[0])
 
     except Exception as xEx:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="The minimum value must be an integer, not: {}".format(_lArgs[0]),
+            sMsg="The minimum value must be an integer, not: {}".format(lArgs[0]),
             xChildEx=xEx,
         )
     # endtry
 
     try:
-        iMax: int = convert.ToInt(_lArgs[1])
+        iMax: int = convert.ToInt(lArgs[1])
 
     except Exception as xEx:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="The maximum value must be an integer, not: {}".format(_lArgs[1]),
+            sMsg="The maximum value must be an integer, not: {}".format(lArgs[1]),
             xChildEx=xEx,
         )
     # endtry
 
     try:
-        iSampleCnt: int = convert.ToInt(_lArgs[2])
+        iSampleCnt: int = convert.ToInt(lArgs[2])
 
     except Exception as xEx:
         raise CParserError_FuncMessage(
             sFunc=sFuncName,
-            sMsg="The sample count must be an integer, not: {}".format(_lArgs[2]),
+            sMsg="The sample count must be an integer, not: {}".format(lArgs[2]),
             xChildEx=xEx,
         )
     # endtry
@@ -617,7 +736,7 @@ def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
     bConsecDiffer = False
     if iArgCnt >= 4:
         try:
-            for tArg in _lArgs[3:]:
+            for tArg in lArgs[3:]:
                 dicData = var_nt.GetData(tArg)
                 if dicData is None:
                     raise CParserError_FuncMessage(
@@ -675,7 +794,7 @@ def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
     if bUnique is True:
         setValues: set[int] = set()
         while True:
-            iRndVal = random.randint(iMin, iMax)
+            iRndVal = xGen.randint(iMin, iMax)
             if iRndVal in setValues:
                 continue
             # endif
@@ -688,7 +807,7 @@ def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
         lValues = list(setValues)
 
     elif bConsecDiffer is True:
-        iRndVal = random.randint(iMin, iMax)
+        iRndVal = xGen.randint(iMin, iMax)
         iPrevVal = iRndVal
         lValues = [iRndVal]
         while True:
@@ -696,7 +815,7 @@ def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
                 break
             # endif
 
-            iRndVal = random.randint(iMin, iMax)
+            iRndVal = xGen.randint(iMin, iMax)
             if iRndVal == iPrevVal:
                 continue
             # endif
@@ -705,7 +824,7 @@ def _DoRandSampleRange(_xParser, _lArgs, *, sFuncName):
         # endfor
 
     else:
-        lValues = [random.randint(iMin, iMax) for i in range(iSampleCnt)]
+        lValues = [xGen.randint(iMin, iMax) for i in range(iSampleCnt)]
     # endif
 
     return lValues
@@ -724,7 +843,6 @@ def RandomFuncGrp(
     sFuncName: str,
     lFuncParts: list[str],
 ):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -732,6 +850,7 @@ def RandomFuncGrp(
     sSubFunc: str = ".".join(lFuncParts[1:])
 
     dicSubFuncs = {
+        "generator": _DoRandGenerator,
         "seed": _DoRandSeed,
         "uniform": _DoRandUniform,
         "int": _DoRandUniformInt,

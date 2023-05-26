@@ -30,18 +30,17 @@ import ison
 print(ison.__file__)
 
 dicData = {
-    "__func_globals__": {
-        "mZ": {
-            "fX": "$rand.uniform{0, 1}",
-            "lA": ["Hello", "World", "Today"],
-        },
+    # the locals block is always processed before the globals block
+    "__locals__": {
+        "fValA1": "$rand.uniform{$rndA, 0, 1}",
+        "fValB1": "$rand.uniform{$rndB, 0, 1}",
     },
     "__globals__": {
-        "doseed": "$rand.seed{2}",
-        "mZ1": "$rand.zwicky{${mZ}}",
-        "mZ2": "$rand.zwicky{${mZ}}",
+        "rndA": "$rand.generator{1}",
+        "rndB": "$rand.generator{1}",
+        "fValA2": "$rand.uniform{$rndA, 0, 1}",
+        "fValB2": "$rand.uniform{$rndB, 0, 1}",
     },
-    "mEval": "$rand.zwicky{${mZ}}",
 }
 
 xResult = ison.run.Run(xData=dicData, bStripVars=False)
