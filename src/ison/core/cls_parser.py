@@ -143,11 +143,18 @@ class CParser:
             "__func_globals__",
             "__func_locals__",
         ]
-        self.lValidExtraTags = ["__includes__", "__platform__", "__data__", "__pre__", "__lambda__"]
+        self.lValidExtraTags = [
+            "__includes__",
+            "__includes_path__",
+            "__platform__",
+            "__data__",
+            "__pre__",
+            "__lambda__",
+        ]
         self.lValidSpecialTags = []
         self.lValidSpecialTags.extend(self.lValidVarTags)
         self.lValidSpecialTags.extend(self.lValidExtraTags)
-        self.lValidSpecialTagsInVars = ["__includes__", "__platform__"]
+        self.lValidSpecialTagsInVars = ["__includes__", "__includes_path__", "__platform__"]
 
         self.xWarnings: CWarningList = CWarningList()
         self.lParseContext: list[CParseContextElement] = []
@@ -684,7 +691,25 @@ class CParser:
     # endif
 
     ################################################################################
-    def ApplyIncludes(self, _xData, *, sImportPath: str, lIncHist: Optional[list] = None):
+    def SetIncludesPath(self, _xData, _sImportPath: str):
+        if not isinstance(_xData, dict):
+            return
+        # endif
+
+        if "__includes__" in _xData and "__includes_path__" not in _xData:
+            _xData["__includes_path__"] = _sImportPath
+        # endif
+
+        for xValue in _xData.values():
+            if isinstance(xValue, dict):
+                self.SetIncludesPath(xValue, _sImportPath)
+            # endif
+        # endfor
+
+    # enddef
+
+    ################################################################################
+    def ApplyIncludes(self, _xData, *, _sImportPath: str, _lIncHist: Optional[list] = None):
         lIncs = _xData.get("__includes__")
         if lIncs is None:
             return
@@ -695,8 +720,15 @@ class CParser:
         # endif
 
         lIncludeHistory = []
-        if isinstance(lIncHist, list):
-            lIncludeHistory = lIncHist.copy()
+        if isinstance(_lIncHist, list):
+            lIncludeHistory = _lIncHist.copy()
+        # endif
+
+        sIncPath: str = _xData.get("__includes_path__")
+        if sIncPath is not None:
+            sImportPath = sIncPath
+        else:
+            sImportPath = _sImportPath
         # endif
 
         for sInc in lIncs:
@@ -722,10 +754,16 @@ class CParser:
                     raise CParserError_Message(sMsg="Included file is not a dictionary: {}".format(pathInc.as_posix()))
                 # endif
                 lIncludeHistory.append(pathInc.as_posix())
+
+                # go through whole dictionary and all child dictionaries to set the
+                # path from which the file was included, so that relative paths work
+                # for later includes.
+                self.SetIncludesPath(dicInc, pathInc.parent.as_posix())
+
                 self.ApplyIncludes(
                     dicInc,
-                    sImportPath=pathInc.parent.as_posix(),
-                    lIncHist=lIncludeHistory,
+                    _sImportPath=pathInc.parent.as_posix(),
+                    _lIncHist=lIncludeHistory,
                 )
 
                 data.UpdateDict(
@@ -780,7 +818,7 @@ class CParser:
             dicVars = _xData.get(sVar)
             if isinstance(dicVars, dict):
                 bHasIncludes = True
-                self.ApplyIncludes(dicVars, sImportPath=self.sImportPath)
+                self.ApplyIncludes(dicVars, _sImportPath=self.sImportPath)
             # endif
         # endfor
 
@@ -1165,7 +1203,7 @@ class CParser:
 
         if isinstance(_xData, dict):
             # Load includes if any
-            self.ApplyIncludes(_xData, sImportPath=self.sImportPath)
+            self.ApplyIncludes(_xData, _sImportPath=self.sImportPath)
 
             # Store current locals to recover them after processing
             dicParentLocals = copy.deepcopy(self.dicVarData.get("@loc"))
