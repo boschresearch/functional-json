@@ -76,8 +76,56 @@ from .cls_parser_trace import CWarning, CWarningList, EWarningType, EParseContex
 
 class CParser:
     @property
-    def dicFuncStorage(self):
+    def dicFuncStorage(self) -> dict:
         return self.dicVarData["@func-storage"]
+
+    # enddef
+
+    @property
+    def dicVarRtv(self) -> dict:
+        return self.dicVarData["@rtv"]
+
+    # enddef
+
+    @property
+    def dicVarGlo(self) -> dict:
+        return self.dicVarData["@glo"]
+
+    # enddef
+
+    @property
+    def dicVarLoc(self) -> dict:
+        return self.dicVarData["@loc"]
+
+    # enddef
+
+    @property
+    def setVarRtvEval(self) -> set:
+        return self.dicVarData["@rtv-eval"]
+
+    # enddef
+
+    @property
+    def setVarGloEval(self) -> set:
+        return self.dicVarData["@glo-eval"]
+
+    # enddef
+
+    @property
+    def setVarLocEval(self) -> set:
+        return self.dicVarData["@loc-eval"]
+
+    # enddef
+
+    @property
+    def dicVarFuncGlo(self) -> dict:
+        return self.dicVarData["@func-glo"]
+
+    # enddef
+
+    @property
+    def dicVarFuncLoc(self) -> dict:
+        return self.dicVarData["@func-loc"]
 
     # enddef
 
@@ -145,7 +193,6 @@ class CParser:
         ]
         self.lValidExtraTags = [
             "__includes__",
-            "__includes_path__",
             "__platform__",
             "__data__",
             "__pre__",
@@ -154,7 +201,7 @@ class CParser:
         self.lValidSpecialTags = []
         self.lValidSpecialTags.extend(self.lValidVarTags)
         self.lValidSpecialTags.extend(self.lValidExtraTags)
-        self.lValidSpecialTagsInVars = ["__includes__", "__includes_path__", "__platform__"]
+        self.lValidSpecialTagsInVars = ["__includes__", "__platform__"]
 
         self.xWarnings: CWarningList = CWarningList()
         self.lParseContext: list[CParseContextElement] = []
@@ -292,7 +339,7 @@ class CParser:
     def AddRuntimeVars(self, *, _dicRtVars: dict, _setRtVarsEval: set, _bCopyData: bool = False):
         if isinstance(_dicRtVars, dict) and len(_dicRtVars) > 0:
             data.UpdateDict(
-                self.dicVarData["@rtv"],
+                self.dicVarRtv,
                 _dicRtVars,
                 "runtime vars",
                 bAllowOverwrite=True,
@@ -302,7 +349,7 @@ class CParser:
             )
 
             # Newly added locals are removed from evaluated set
-            setVarRtvEval: set = self.dicVarData["@rtv-eval"]
+            setVarRtvEval: set = self.setVarRtvEval
             for sKey in _dicRtVars:
                 if sKey in setVarRtvEval:
                     setVarRtvEval.remove(sKey)
@@ -320,9 +367,9 @@ class CParser:
     ################################################################################
     def GetRuntimeVars(self, _bCopy: bool = True):
         if _bCopy is True:
-            return copy.deepcopy(self.dicVarData["@rtv"])
+            return copy.deepcopy(self.dicVarRtv)
         else:
-            return self.dicVarData["@rtv"]
+            return self.dicVarRtv
         # endif
 
     # enddef
@@ -330,9 +377,9 @@ class CParser:
     ################################################################################
     def GetRuntimeVarEvalSet(self, _bCopy: bool = True):
         if _bCopy is True:
-            return copy.deepcopy(self.dicVarData["@rtv-eval"])
+            return copy.deepcopy(self.setVarRtvEval)
         else:
-            return self.dicVarData["@rtv-eval"]
+            return self.setVarRtvEval
         # endif
 
     # enddef
@@ -691,24 +738,6 @@ class CParser:
     # endif
 
     ################################################################################
-    def SetIncludesPath(self, _xData, _sImportPath: str):
-        if not isinstance(_xData, dict):
-            return
-        # endif
-
-        if "__includes__" in _xData and "__includes_path__" not in _xData:
-            _xData["__includes_path__"] = _sImportPath
-        # endif
-
-        for xValue in _xData.values():
-            if isinstance(xValue, dict):
-                self.SetIncludesPath(xValue, _sImportPath)
-            # endif
-        # endfor
-
-    # enddef
-
-    ################################################################################
     def ApplyIncludes(self, _xData, *, _sImportPath: str, _lIncHist: Optional[list] = None):
         lIncs = _xData.get("__includes__")
         if lIncs is None:
@@ -724,13 +753,6 @@ class CParser:
             lIncludeHistory = _lIncHist.copy()
         # endif
 
-        sIncPath: str = _xData.get("__includes_path__")
-        if sIncPath is not None:
-            sImportPath = sIncPath
-        else:
-            sImportPath = _sImportPath
-        # endif
-
         for sInc in lIncs:
             try:
                 self._EnterParseContext(EParseContext.INC, sInc)
@@ -742,29 +764,23 @@ class CParser:
 
                 pathInc: Path = path.MakeNormPath(sProcInc)
                 if not pathInc.is_absolute():
-                    pathInc = path.MakeNormPath([sImportPath, sProcInc])
+                    pathInc = path.MakeNormPath([_sImportPath, sProcInc])
                 # endif
 
                 if pathInc.as_posix() in lIncludeHistory:
                     raise CParserError_Message(sMsg="Include file recursively included: {}".format(pathInc.as_posix()))
                 # endif
 
-                dicInc = io.LoadJson(pathInc)
-                if not isinstance(dicInc, dict):
+                dicIncRaw = io.LoadJson(pathInc)
+                if not isinstance(dicIncRaw, dict):
                     raise CParserError_Message(sMsg="Included file is not a dictionary: {}".format(pathInc.as_posix()))
                 # endif
                 lIncludeHistory.append(pathInc.as_posix())
 
-                # go through whole dictionary and all child dictionaries to set the
-                # path from which the file was included, so that relative paths work
-                # for later includes.
-                self.SetIncludesPath(dicInc, pathInc.parent.as_posix())
-
-                self.ApplyIncludes(
-                    dicInc,
-                    _sImportPath=pathInc.parent.as_posix(),
-                    _lIncHist=lIncludeHistory,
-                )
+                sStoreImportPath = self.sImportPath
+                self.sImportPath = pathInc.parent.as_posix()
+                dicInc, bIsProcessed = self.InnerProcess(dicIncRaw)
+                self.sImportPath = sStoreImportPath
 
                 data.UpdateDict(
                     _xData,
@@ -899,15 +915,6 @@ class CParser:
             "__eval_locals__",
         )
 
-        dicVarRtv: dict = self.dicVarData["@rtv"]
-        dicVarGlo: dict = self.dicVarData["@glo"]
-        dicVarLoc: dict = self.dicVarData["@loc"]
-        setVarRtvEval: set = self.dicVarData["@rtv-eval"]
-        setVarGloEval: set = self.dicVarData["@glo-eval"]
-        setVarLocEval: set = self.dicVarData["@loc-eval"]
-        dicVarFuncGlo: dict = self.dicVarData["@func-glo"]
-        dicVarFuncLoc: dict = self.dicVarData["@func-loc"]
-
         ######################################################################################
         # get elements in "__runtime_vars__"
         dicRtVars = _xData.get("__runtime_vars__", {})
@@ -1004,7 +1011,7 @@ class CParser:
         # add func globals to var dict
         if len(dicFuncGlo) > 0:
             data.UpdateDict(
-                dicVarFuncGlo,
+                self.dicVarFuncGlo,
                 dicFuncGlo,
                 "function globals",
                 bAllowOverwrite=True,
@@ -1018,7 +1025,7 @@ class CParser:
         # add func locals to var dict
         if len(dicFuncLoc) > 0:
             data.UpdateDict(
-                dicVarFuncLoc,
+                self.dicVarFuncLoc,
                 dicFuncLoc,
                 "function locals",
                 bAllowOverwrite=True,
@@ -1032,7 +1039,7 @@ class CParser:
         # add globals to var dict
         if len(dicGlobals) > 0:
             data.UpdateDict(
-                dicVarGlo,
+                self.dicVarGlo,
                 dicGlobals,
                 "globals",
                 bAllowOverwrite=True,
@@ -1042,8 +1049,8 @@ class CParser:
             lKeys["globals"].extend(dicGlobals.keys())
             # Newly added globals are removed from evaluated set
             for sKey in dicGlobals:
-                if sKey in setVarGloEval:
-                    setVarGloEval.remove(sKey)
+                if sKey in self.setVarGloEval:
+                    self.setVarGloEval.remove(sKey)
                 # endif
             # endfor
         # endif
@@ -1052,7 +1059,7 @@ class CParser:
         # add locals to var dict
         if len(dicLocals) > 0:
             data.UpdateDict(
-                dicVarLoc,
+                self.dicVarLoc,
                 dicLocals,
                 "locals",
                 bAllowOverwrite=True,
@@ -1062,8 +1069,8 @@ class CParser:
             lKeys["locals"].extend(dicLocals.keys())
             # Newly added locals are removed from evaluated set
             for sKey in dicLocals:
-                if sKey in setVarLocEval:
-                    setVarLocEval.remove(sKey)
+                if sKey in self.setVarLocEval:
+                    self.setVarLocEval.remove(sKey)
                 # endif
             # endfor
         # endif
@@ -1072,7 +1079,7 @@ class CParser:
         # add runtime vars to var dict
         if len(dicRtVars) > 0:
             data.UpdateDict(
-                dicVarRtv,
+                self.dicVarRtv,
                 dicRtVars,
                 "runtime vars",
                 bAllowOverwrite=True,
@@ -1082,8 +1089,8 @@ class CParser:
             lKeys["rtv"].extend(dicRtVars.keys())
             # Newly added locals are removed from evaluated set
             for sKey in dicRtVars:
-                if sKey in setVarRtvEval:
-                    setVarRtvEval.remove(sKey)
+                if sKey in self.setVarRtvEval:
+                    self.setVarRtvEval.remove(sKey)
                 # endif
             # endfor
         # endif
@@ -1099,7 +1106,7 @@ class CParser:
                     # endif
                     try:
                         self._EnterParseContext(EParseContext.VAR, sVarKey)
-                        xEval, bIsProc = self.InnerProcess(dicVarLoc[sVarKey])
+                        xEval, bIsProc = self.InnerProcess(self.dicVarLoc[sVarKey])
                     except Exception as xEx:
                         raise CParserError_Message(sMsg=f"Error parsing variable '{sVarKey}'", xChildEx=xEx)
                     finally:
@@ -1107,8 +1114,8 @@ class CParser:
                     # endtry
 
                     if bIsProc is True:
-                        setVarLocEval.add(sVarKey)
-                        dicVarLoc[sVarKey] = xEval
+                        self.setVarLocEval.add(sVarKey)
+                        self.dicVarLoc[sVarKey] = xEval
                         dicLocals[sVarKey] = xEval
                     # endif
                 # endfor
@@ -1132,15 +1139,15 @@ class CParser:
                     # endif
                     try:
                         self._EnterParseContext(EParseContext.VAR, sVarKey)
-                        xEval, bIsProc = self.InnerProcess(dicVarGlo[sVarKey])
+                        xEval, bIsProc = self.InnerProcess(self.dicVarGlo[sVarKey])
                     except Exception as xEx:
                         raise CParserError_Message(sMsg=f"Error parsing variable '{sVarKey}'", xChildEx=xEx)
                     finally:
                         self._ExitParseContext()
                     # endtry
                     if bIsProc is True:
-                        self.dicVarData["@glo-eval"].add(sVarKey)
-                        dicVarGlo[sVarKey] = xEval
+                        self.setVarGloEval.add(sVarKey)
+                        self.dicVarGlo[sVarKey] = xEval
                         dicGlobals[sVarKey] = xEval
                     # endif
                 # endfor
@@ -1176,8 +1183,8 @@ class CParser:
                     # endtry
 
                     if bIsProc is True:
-                        setVarRtvEval.add(sVarKey)
-                        dicVarRtv[sVarKey] = xEval
+                        self.setVarRtvEval.add(sVarKey)
+                        self.dicVarRtv[sVarKey] = xEval
                     # endif
                 # endfor
 
@@ -1206,9 +1213,9 @@ class CParser:
             self.ApplyIncludes(_xData, _sImportPath=self.sImportPath)
 
             # Store current locals to recover them after processing
-            dicParentLocals = copy.deepcopy(self.dicVarData.get("@loc"))
-            setParentLocalsEval = copy.deepcopy(self.dicVarData.get("@loc-eval"))
-            dicParentFuncLocals = copy.deepcopy(self.dicVarData.get("@func-loc"))
+            dicParentLocals = copy.deepcopy(self.dicVarLoc)
+            setParentLocalsEval = copy.deepcopy(self.setVarLocEval)
+            dicParentFuncLocals = copy.deepcopy(self.dicVarFuncLoc)
 
             lVarKeys = self.ApplyDataVariables(_xData)
 
@@ -1220,11 +1227,11 @@ class CParser:
 
             if bRemoveGlobals:
                 for sKey in lVarKeys["globals"]:
-                    del self.dicVarData["@glo"][sKey]
+                    del self.dicVarGlo[sKey]
                 # endfor
 
                 for sKey in lVarKeys["func-glo"]:
-                    del self.dicVarData["@func-glo"][sKey]
+                    del self.dicVarFuncGlo[sKey]
                 # endfor
             # endif
 
