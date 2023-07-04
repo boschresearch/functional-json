@@ -23,7 +23,6 @@ import platform
 
 ################################################################################
 def AssertDisjunctVarDicts(_dicA, _dicB, _sNameA, _sNameB):
-
     # test whether dictionaries have no top-level elements in common
     if _dicA is not None and _dicB is not None:
         for sItem in _dicA:
@@ -53,9 +52,7 @@ def UpdateDict(
     bIgnoreSpecialVars=False,
     bCopyData=True,
 ):
-
     for sId, xSrcEl in _dicSrc.items():
-
         if bIgnoreSpecialVars is True and sId.startswith("__"):
             continue
         # endif
@@ -126,7 +123,6 @@ def AddVarsToData(
     bThrowOnDisallow=True,
     bPrintWarnings=True,
 ):
-
     if isinstance(dicLocals, dict):
         if "__locals__" in _xData:
             UpdateDict(
@@ -220,18 +216,26 @@ def AddVarsToData(
 
 # enddef
 
+
 ################################################################################
 # Add local and global variables from one dict to another
-def AddLocalGlobalVars(_dicTrg, _dicSrc, bAllowOverwrite=False, bThrowOnDisallow=True, bPrintWarnings=True):
-
+def AddLocalGlobalVars(
+    _dicTrg,
+    _dicSrc,
+    bAllowOverwrite=False,
+    bThrowOnDisallow=True,
+    bPrintWarnings=True,
+    bLocalVars=True,
+    bGlobalVars=True,
+):
     AddVarsToData(
         _dicTrg,
-        dicGlobals=_dicSrc.get("__globals__"),
-        dicLocals=_dicSrc.get("__locals__"),
-        dicEvalGlobals=_dicSrc.get("__eval_globals__"),
-        dicEvalLocals=_dicSrc.get("__eval_locals__"),
-        dicFuncGlobals=_dicSrc.get("__func_globals__"),
-        dicFuncLocals=_dicSrc.get("__func_locals__"),
+        dicGlobals=_dicSrc.get("__globals__") if bGlobalVars is True else None,
+        dicLocals=_dicSrc.get("__locals__") if bLocalVars is True else None,
+        dicEvalGlobals=_dicSrc.get("__eval_globals__") if bGlobalVars is True else None,
+        dicEvalLocals=_dicSrc.get("__eval_locals__") if bLocalVars is True else None,
+        dicFuncGlobals=_dicSrc.get("__func_globals__") if bGlobalVars is True else None,
+        dicFuncLocals=_dicSrc.get("__func_locals__") if bLocalVars is True else None,
         bAllowOverwrite=bAllowOverwrite,
         bThrowOnDisallow=bThrowOnDisallow,
         bPrintWarnings=bPrintWarnings,
@@ -244,7 +248,6 @@ def AddLocalGlobalVars(_dicTrg, _dicSrc, bAllowOverwrite=False, bThrowOnDisallow
 ################################################################################
 # Get Dictionary for current system/node
 def GetPlatformDict(_dicData):
-
     dicPlatform = _dicData.get("__platform__")
     if dicPlatform is None:
         return _dicData

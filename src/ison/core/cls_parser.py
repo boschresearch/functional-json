@@ -137,6 +137,7 @@ class CParser:
         sImportPath: str = None,
         dicRtVars: dict = None,
         setRtVarsEval: set = None,
+        xParser: "CParser" = None,
     ):
         if isinstance(_dicConstVars, dict):
             self.dicVarData = copy.deepcopy(_dicConstVars)
@@ -163,6 +164,14 @@ class CParser:
 
         # Initialize internal storage for functions
         self.dicVarData["@func-storage"] = {}
+
+        # Copy state of given parser instance, if any.
+        if isinstance(xParser, CParser):
+            data.UpdateDict(
+                self.dicVarData, xParser.dicVarData, "parser initialization", bAllowOverwrite=True, bPrintWarnings=False
+            )
+
+        # endif
 
         self.pathLog: Path = None
 
@@ -213,6 +222,20 @@ class CParser:
                 self.RegisterFunctionModule(modFunc)
             # endif
         # endfor
+
+    # enddef
+
+    ################################################################################
+    def UpdateConstVars(self, _dicConstVars: dict, *, _bAllowOverwrite: bool = False, _bPrintWarnings: bool = False):
+        if isinstance(_dicConstVars, dict):
+            data.UpdateDict(
+                self.dicVarData,
+                _dicConstVars,
+                "constant variables",
+                bAllowOverwrite=_bAllowOverwrite,
+                bPrintWarnings=_bPrintWarnings,
+            )
+        # endif
 
     # enddef
 
@@ -607,6 +630,7 @@ class CParser:
         dicEvalLocals=None,
         dicFuncGlobals=None,
         dicFuncLocals=None,
+        dicConstVars=None,
     ):
         sSelfIgnoreImport = self.bIgnoreImport
         self.bIgnoreImport = bIgnoreImport
@@ -633,6 +657,10 @@ class CParser:
 
         self.ClearVarLocals()
         self.ClearFuncLocals()
+
+        if isinstance(dicConstVars, dict):
+            data.UpdateDict(self.dicVarData, dicConstVars, "set constant variables", bAllowOverwrite=True)
+        # endif
 
         xData = copy.deepcopy(_xData)
 
@@ -691,7 +719,8 @@ class CParser:
             if isinstance(xResult, dict):
                 data.AddVarsToData(
                     xResult,
-                    dicGlobals=self.dicVarData.get("@glo"),
+                    dicGlobals=self.dicVarGlo,
+                    dicFuncGlobals=self.dicVarFuncGlo,
                     bAllowOverwrite=True,
                     bThrowOnDisallow=False,
                     bPrintWarnings=False,
