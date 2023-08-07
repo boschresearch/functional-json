@@ -26,12 +26,14 @@
 
 import math
 import copy
+import hashlib
 import random
 import re
-from pathlib import Path
+
+# from pathlib import Path
 from typing import Tuple
 
-from ..util import io
+# from ..util import io
 from ..util import convert
 from ..core import var_nt
 from ..core.cls_parser_error import CParserError, CParserError_FuncMessage
@@ -352,7 +354,15 @@ def _DoRandGenerator(_xParser, _lArgs, *, sFuncName):
         # endif
     # endif
 
-    iGenId = iSeed = hash(xSeed)
+    if isinstance(xSeed, int):
+        iSeed = xSeed
+    else:
+        sSeed = str(xSeed)
+        hashSeed = hashlib.md5(sSeed.encode())
+        iSeed = int.from_bytes(hashSeed.digest()[:8], "little")
+    # endif
+
+    iGenId = iSeed
     dicRndGen = _xParser.dicFuncStorage.get("dicRndGen")
     if dicRndGen is None:
         dicRndGen = _xParser.dicFuncStorage["dicRndGen"] = {}
