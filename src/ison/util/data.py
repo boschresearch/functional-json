@@ -17,6 +17,7 @@
 #
 # </LICENSE>
 
+import re
 import copy
 import platform
 
@@ -246,6 +247,30 @@ def AddLocalGlobalVars(
 
 
 ################################################################################
+def ConstructRegExFromWildcards(_lWildcards) -> list[re.Pattern]:
+    # Construct regular expressions from box types
+    lRegEx = []
+    for sWildcard in _lWildcards:
+        if len(sWildcard) == 0:
+            continue
+        # endif
+        sWildcard = sWildcard.replace(".", r"\.")
+        if sWildcard[-1] == "*":
+            sWildcard = sWildcard[0:-1].replace("*", r"[\w]*") + r"[\w\.]*"
+        else:
+            sWildcard = sWildcard.replace("*", r"[\w]*")
+        # endif
+        sWildcard = sWildcard.replace("?", ".")
+        lRegEx.append(re.compile(sWildcard))
+    # endfor
+
+    return lRegEx
+
+
+# enddef
+
+
+################################################################################
 # Get Dictionary for current system/node
 def GetPlatformDict(_dicData):
     dicPlatform = _dicData.get("__platform__")
@@ -256,7 +281,18 @@ def GetPlatformDict(_dicData):
     dicNode = None
     dicSystem = dicPlatform.get(platform.system())
     if isinstance(dicSystem, dict):
-        dicNode = dicSystem.get(platform.node())
+        lNodes: list[str] = [x for x in dicSystem.keys() if not x.startswith("__")]
+        lRegEx = ConstructRegExFromWildcards(lNodes)
+        sNode = platform.node()
+        xRegEx: re.Pattern
+        for iIdx, xRegEx in enumerate(lRegEx):
+            xMatch = xRegEx.fullmatch(sNode)
+            if xMatch is not None:
+                dicNode = dicSystem.get(lNodes[iIdx])
+                break
+            # endif
+        # endfor
+        # dicNode = dicSystem.get(platform.node())
     else:
         dicSystem = None
     # endif
