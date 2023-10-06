@@ -100,6 +100,12 @@ class CParser:
     # enddef
 
     @property
+    def lVarLocStack(self) -> list[dict]:
+        return self.dicVarData["@loc-s"]
+
+    # enddef
+
+    @property
     def setVarRtvEval(self) -> set:
         return self.dicVarData["@rtv-eval"]
 
@@ -118,6 +124,12 @@ class CParser:
     # enddef
 
     @property
+    def lVarLocEvalStack(self) -> list[set]:
+        return self.dicVarData["@loc-eval-s"]
+
+    # enddef
+
+    @property
     def dicVarFuncGlo(self) -> dict:
         return self.dicVarData["@func-glo"]
 
@@ -126,6 +138,18 @@ class CParser:
     @property
     def dicVarFuncLoc(self) -> dict:
         return self.dicVarData["@func-loc"]
+
+    # enddef
+
+    @property
+    def lVarFuncLocStack(self) -> list[dict]:
+        return self.dicVarData["@func-loc-s"]
+
+    # enddef
+
+    @property
+    def bIsFullyProcessed(self) -> bool:
+        return self._bIsFullyProcessed
 
     # enddef
 
@@ -172,6 +196,10 @@ class CParser:
             )
 
         # endif
+
+        # Reset at start of parsing. If at least one variable could not be processed,
+        # this variable is set to False
+        self._bIsFullyProcessed: bool = False
 
         self.pathLog: Path = None
 
@@ -222,6 +250,8 @@ class CParser:
                 self.RegisterFunctionModule(modFunc)
             # endif
         # endfor
+
+        self.ProvideVariables()
 
     # enddef
 
@@ -411,6 +441,8 @@ class CParser:
     def ClearVarLocals(self):
         self.dicVarData["@loc"] = {}
         self.dicVarData["@loc-eval"] = set()
+        self.dicVarData["@loc-s"] = []
+        self.dicVarData["@loc-eval-s"] = []
 
     # enddef
 
@@ -431,6 +463,7 @@ class CParser:
     ################################################################################
     def ClearFuncLocals(self):
         self.dicVarData["@func-loc"] = {}
+        self.dicVarData["@func-loc-s"] = []
 
     # enddef
 
@@ -631,6 +664,7 @@ class CParser:
         dicFuncGlobals=None,
         dicFuncLocals=None,
         dicConstVars=None,
+        bInPlace: bool = False,
     ):
         sSelfIgnoreImport = self.bIgnoreImport
         self.bIgnoreImport = bIgnoreImport
@@ -655,6 +689,7 @@ class CParser:
             lProcPathLists = [x.split("/") for x in lProcessPaths]
         # endif
 
+        self._bIsFullyProcessed: bool = True
         self.ClearVarLocals()
         self.ClearFuncLocals()
 
@@ -662,7 +697,11 @@ class CParser:
             data.UpdateDict(self.dicVarData, dicConstVars, "set constant variables", bAllowOverwrite=True)
         # endif
 
-        xData = copy.deepcopy(_xData)
+        if bInPlace is False:
+            xData = copy.deepcopy(_xData)
+        else:
+            xData = _xData
+        # endif
 
         data.AddVarsToData(
             xData,
@@ -1242,9 +1281,17 @@ class CParser:
             self.ApplyIncludes(_xData, _sImportPath=self.sImportPath)
 
             # Store current locals to recover them after processing
-            dicParentLocals = copy.deepcopy(self.dicVarLoc)
-            setParentLocalsEval = copy.deepcopy(self.setVarLocEval)
-            dicParentFuncLocals = copy.deepcopy(self.dicVarFuncLoc)
+            # dicParentLocals = copy.deepcopy(self.dicVarLoc)
+            # setParentLocalsEval = copy.deepcopy(self.setVarLocEval)
+            # dicParentFuncLocals = copy.deepcopy(self.dicVarFuncLoc)
+            self.lVarLocStack.append(self.dicVarLoc)
+            self.dicVarData["@loc"] = {}
+
+            self.lVarLocEvalStack.append(self.setVarLocEval)
+            self.dicVarData["@loc-eval"] = set()
+
+            self.lVarFuncLocStack.append(self.dicVarFuncLoc)
+            self.dicVarData["@func-loc"] = {}
 
             lVarKeys = self.ApplyDataVariables(_xData)
 
@@ -1264,14 +1311,9 @@ class CParser:
                 # endfor
             # endif
 
-            if dicParentLocals is not None:
-                self.dicVarData["@loc"] = dicParentLocals
-                self.dicVarData["@loc-eval"] = setParentLocalsEval
-            # endif
-
-            if dicParentFuncLocals is not None:
-                self.dicVarData["@func-loc"] = dicParentFuncLocals
-            # endif
+            self.dicVarData["@loc"] = self.lVarLocStack.pop()
+            self.dicVarData["@loc-eval"] = self.lVarLocEvalStack.pop()
+            self.dicVarData["@func-loc"] = self.lVarFuncLocStack.pop()
 
         elif isinstance(_xData, list):
             if lPath is not None and len(lPath) > 0:
@@ -1926,25 +1968,25 @@ class CParser:
     # enddef
 
     ################################################################################
-    def _ProcVar(self, _dicVar, _setVarEval, _sKey):
+    def _ProcVar(self, _dicVarRead: dict, _setVarEvalRead: set, _sKey: str, _dicVarWrite: dict, _setVarEvalWrite: set):
         bFound = False
         xNewVal = None
 
-        if _sKey in _setVarEval:
+        if _sKey in _setVarEvalRead:
             bFound = True
-            xNewVal = _dicVar[_sKey]
+            xNewVal = _dicVarRead[_sKey]
 
-        elif _sKey in _dicVar and not _sKey.startswith("__"):
+        elif _sKey in _dicVarRead and not _sKey.startswith("__"):
             self._EnterParseContext(EParseContext.VAR, _sKey)
             bFound = True
-            xVar = _dicVar[_sKey]
+            xVar = _dicVarRead[_sKey]
             xNewVal, bIsProc = self.InnerProcess(xVar)
             # if the variable is not fully processed, then do not flag it as processed,
-            # but store the possibly parially processed result back in the variable dict.
+            # but store the possibly partially processed result back in the variable dict.
             if bIsProc is True:
-                _setVarEval.add(_sKey)
+                _setVarEvalWrite.add(_sKey)
             # endif
-            _dicVar[_sKey] = xNewVal
+            _dicVarWrite[_sKey] = xNewVal
             self._ExitParseContext()
         # endif
 
@@ -1953,24 +1995,43 @@ class CParser:
     # enddef
 
     ################################################################################
-    def _GetVar(self, _xData, _sKey: str):
+    def _GetVar(self, _xData: dict, _sKey: str):
         bFound = False
         bHasVars = False
         xNewVal = None
 
         if "@loc" in _xData:
             bHasVars = True
-            xNewVal, bFound = self._ProcVar(_xData["@loc"], _xData["@loc-eval"], _sKey)
+            dicLocAct: dict = _xData["@loc"]
+            setLocEvalAct: set = _xData["@loc-eval"]
+            xNewVal, bFound = self._ProcVar(dicLocAct, setLocEvalAct, _sKey, dicLocAct, setLocEvalAct)
+
+            if bFound is False:
+                lLocVarStack: list[dict] = _xData.get("@loc-s")
+                lLocVarEvalStack: list[set] = _xData.get("@loc-eval-s")
+                if lLocVarStack is not None and lLocVarEvalStack is not None:
+                    for dicLoc, setEval in zip(reversed(lLocVarStack), reversed(lLocVarEvalStack)):
+                        xNewVal, bFound = self._ProcVar(dicLoc, setEval, _sKey, dicLocAct, setLocEvalAct)
+                        if bFound is True:
+                            break
+                        # endif
+                    # endwhile
+                # endif
+            # endif
         # endif
 
         if bFound is False and "@glo" in _xData:
             bHasVars = True
-            xNewVal, bFound = self._ProcVar(_xData["@glo"], _xData["@glo-eval"], _sKey)
+            xNewVal, bFound = self._ProcVar(
+                _xData["@glo"], _xData["@glo-eval"], _sKey, _xData["@glo"], _xData["@glo-eval"]
+            )
         # endif
 
         if bFound is False and "@rtv" in _xData:
             bHasVars = True
-            xNewVal, bFound = self._ProcVar(_xData["@rtv"], _xData["@rtv-eval"], _sKey)
+            xNewVal, bFound = self._ProcVar(
+                _xData["@rtv"], _xData["@rtv-eval"], _sKey, _xData["@rtv"], _xData["@rtv-eval"]
+            )
         # endif
 
         if bFound is False and "@func-loc" in _xData:
@@ -1978,6 +2039,16 @@ class CParser:
             if _sKey in _xData["@func-loc"]:
                 bFound = True
                 xNewVal = _xData["@func-loc"][_sKey]
+            # endif
+            if bFound is False:
+                lFuncLocVarStack: list[dict] = _xData["@func-loc-s"]
+                for dicFuncLoc in reversed(lFuncLocVarStack):
+                    if _sKey in dicFuncLoc:
+                        bFound = True
+                        xNewVal = dicFuncLoc[_sKey]
+                        break
+                    # endif
+                # endfor
             # endif
         # endif
 
@@ -2085,6 +2156,7 @@ class CParser:
             xNewVal, bFound = self._GetVar(_xValue, sKey)
             if bFound is True and xNewVal is None:
                 # Variable was found but could not be fully evaluated.
+                self._bIsFullyProcessed = False
                 return None, False
 
             elif bFound is False:
