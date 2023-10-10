@@ -2173,13 +2173,25 @@ class CParser:
                     # In this case, return None to indicate that the path cannot be found currently.
                     xResult = None
                     bLiteral = True
+                    self._bIsFullyProcessed = False
 
                 else:
-                    raise CParserError_Message(
-                        sMsg="Key '{0}' not found in dictionary. Available keys are: {1}\n".format(
-                            sKey, CParserError.ListToString(list(_xValue.keys()))
+                    # lKeyVal: list[str] = [f"{k}: {v}" for k, v in _xValue.items()]
+                    # raise CParserError_Message(
+                    #     sMsg="Key '{0}' not found in dictionary. Available keys are: {1}\n".format(
+                    #         sKey, CParserError.ListToString(lKeyVal)
+                    #     )
+                    # )
+                    if bFound is False:
+                        raise CParserError_Message(
+                            sMsg="Key '{0}' not found in dictionary. Available keys are: {1}\n".format(
+                                sKey, CParserError.ListToString(list(_xValue.keys()))
+                            )
                         )
-                    )
+                    else:
+                        raise CParserError_Message(
+                            sMsg=f"Key '{sKey}' found in dictionary but value is undefined."
+                            )
                 # endif
             else:
                 try:
