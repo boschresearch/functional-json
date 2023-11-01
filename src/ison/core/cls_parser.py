@@ -2041,6 +2041,7 @@ class CParser:
             bHasVars = True
             if _sKey in _xData["@func-loc"]:
                 bFound = True
+                bIsProc = True
                 xNewVal = _xData["@func-loc"][_sKey]
             # endif
             if bFound is False:
@@ -2048,6 +2049,7 @@ class CParser:
                 for dicFuncLoc in reversed(lFuncLocVarStack):
                     if _sKey in dicFuncLoc:
                         bFound = True
+                        bIsProc = True
                         xNewVal = dicFuncLoc[_sKey]
                         break
                     # endif
@@ -2059,6 +2061,7 @@ class CParser:
             bHasVars = True
             if _sKey in _xData["@func-glo"]:
                 bFound = True
+                bIsProc = True
                 xNewVal = _xData["@func-glo"][_sKey]
             # endif
         # endif
