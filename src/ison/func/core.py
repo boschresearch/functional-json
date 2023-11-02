@@ -1364,7 +1364,8 @@ def Print(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
     _xParser.LogString(sText)
 
-    return sText, False
+    return None, False
+    # return sText, False
 
 
 # enddef

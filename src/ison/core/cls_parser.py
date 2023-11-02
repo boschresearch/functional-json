@@ -1970,10 +1970,12 @@ class CParser:
     ################################################################################
     def _ProcVar(self, _dicVarRead: dict, _setVarEvalRead: set, _sKey: str, _dicVarWrite: dict, _setVarEvalWrite: set):
         bFound = False
+        bIsProc = False
         xNewVal = None
 
         if _sKey in _setVarEvalRead:
             bFound = True
+            bIsProc = True
             xNewVal = _dicVarRead[_sKey]
 
         elif _sKey in _dicVarRead and not _sKey.startswith("__"):
@@ -1990,13 +1992,14 @@ class CParser:
             self._ExitParseContext()
         # endif
 
-        return xNewVal, bFound
+        return xNewVal, bFound, bIsProc
 
     # enddef
 
     ################################################################################
     def _GetVar(self, _xData: dict, _sKey: str):
         bFound = False
+        bIsProc = False
         bHasVars = False
         xNewVal = None
 
@@ -2004,14 +2007,14 @@ class CParser:
             bHasVars = True
             dicLocAct: dict = _xData["@loc"]
             setLocEvalAct: set = _xData["@loc-eval"]
-            xNewVal, bFound = self._ProcVar(dicLocAct, setLocEvalAct, _sKey, dicLocAct, setLocEvalAct)
+            xNewVal, bFound, bIsProc = self._ProcVar(dicLocAct, setLocEvalAct, _sKey, dicLocAct, setLocEvalAct)
 
             if bFound is False:
                 lLocVarStack: list[dict] = _xData.get("@loc-s")
                 lLocVarEvalStack: list[set] = _xData.get("@loc-eval-s")
                 if lLocVarStack is not None and lLocVarEvalStack is not None:
                     for dicLoc, setEval in zip(reversed(lLocVarStack), reversed(lLocVarEvalStack)):
-                        xNewVal, bFound = self._ProcVar(dicLoc, setEval, _sKey, dicLocAct, setLocEvalAct)
+                        xNewVal, bFound, bIsProc = self._ProcVar(dicLoc, setEval, _sKey, dicLocAct, setLocEvalAct)
                         if bFound is True:
                             break
                         # endif
@@ -2022,14 +2025,14 @@ class CParser:
 
         if bFound is False and "@glo" in _xData:
             bHasVars = True
-            xNewVal, bFound = self._ProcVar(
+            xNewVal, bFound, bIsProc = self._ProcVar(
                 _xData["@glo"], _xData["@glo-eval"], _sKey, _xData["@glo"], _xData["@glo-eval"]
             )
         # endif
 
         if bFound is False and "@rtv" in _xData:
             bHasVars = True
-            xNewVal, bFound = self._ProcVar(
+            xNewVal, bFound, bIsProc = self._ProcVar(
                 _xData["@rtv"], _xData["@rtv-eval"], _sKey, _xData["@rtv"], _xData["@rtv-eval"]
             )
         # endif
@@ -2038,6 +2041,7 @@ class CParser:
             bHasVars = True
             if _sKey in _xData["@func-loc"]:
                 bFound = True
+                bIsProc = True
                 xNewVal = _xData["@func-loc"][_sKey]
             # endif
             if bFound is False:
@@ -2045,6 +2049,7 @@ class CParser:
                 for dicFuncLoc in reversed(lFuncLocVarStack):
                     if _sKey in dicFuncLoc:
                         bFound = True
+                        bIsProc = True
                         xNewVal = dicFuncLoc[_sKey]
                         break
                     # endif
@@ -2056,6 +2061,7 @@ class CParser:
             bHasVars = True
             if _sKey in _xData["@func-glo"]:
                 bFound = True
+                bIsProc = True
                 xNewVal = _xData["@func-glo"][_sKey]
             # endif
         # endif
@@ -2064,7 +2070,7 @@ class CParser:
             self.AddWarning(EWarningType.UNDEF_VAR, _sKey)
         # endif
 
-        return xNewVal, bFound
+        return xNewVal, bFound, bIsProc
 
     # enddef
 
@@ -2153,8 +2159,8 @@ class CParser:
             # endif
 
             # Try to obtain variable from global, locals, func vars
-            xNewVal, bFound = self._GetVar(_xValue, sKey)
-            if bFound is True and xNewVal is None:
+            xNewVal, bFound, bIsProc = self._GetVar(_xValue, sKey)
+            if bFound is True and (xNewVal is None or bIsProc is False):
                 # Variable was found but could not be fully evaluated.
                 self._bIsFullyProcessed = False
                 return None, False
@@ -2189,9 +2195,7 @@ class CParser:
                             )
                         )
                     else:
-                        raise CParserError_Message(
-                            sMsg=f"Key '{sKey}' found in dictionary but value is undefined."
-                            )
+                        raise CParserError_Message(sMsg=f"Key '{sKey}' found in dictionary but value is undefined.")
                 # endif
             else:
                 try:
