@@ -168,7 +168,6 @@ def Reference(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Convert all `/` in a path by `:`, so that it becomes an ison variable path")
 def ToRefPath(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -189,10 +188,10 @@ def ToRefPath(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Convert argument to json string")
 def AsString(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt != 1:
@@ -210,10 +209,10 @@ def AsString(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Convert argument to json string")
 def AsStringBackQuote(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt != 1:
@@ -231,10 +230,10 @@ def AsStringBackQuote(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Explicit lambda call: first argument is the function, the rest are list of arguments")
 def LambdaCall(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt < 1:
@@ -262,7 +261,6 @@ def LambdaCall(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Execute lambda function (first argument) for all remaining arguments")
 def LambdaCall_ForEach_Arg(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt < 1:
@@ -361,7 +359,6 @@ def LambdaCall_ForEach_Arg(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
     "Only those elements are returned where lambda function returns true"
 )
 def LambdaCall_ForEach_Where(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt < 1:
@@ -401,7 +398,6 @@ def LambdaCall_ForEach_Where(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Define lambda function")
 def Lambda(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt != 1:
@@ -422,7 +418,6 @@ def Lambda(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Define data structure as lambda function")
 def LambdaDef(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt != 1:
@@ -446,10 +441,10 @@ def LambdaDef(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Convert string argument to data object")
 def ToStruct(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -487,10 +482,10 @@ def ToStruct(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Convert argument to json string")
 def ToJson(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -597,7 +592,6 @@ def ToString(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Enumerate list. Returns list of tuples each with index and data element")
 def Enumerate(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -626,12 +620,12 @@ def Enumerate(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip(
     "Combines corresponding elements of set of lists to a list of tuples, each with one value from each input list, i.e. list(zip(lArg1,lArg2,...)"
 )
 def Group(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -658,10 +652,10 @@ def Group(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Union of lists or dictionaries")
 def ToUnion(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -711,7 +705,6 @@ def ToUnion(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
     "If only single argument is given, then a list from zero to the argument minus one is returned"
 )
 def ToRange(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -771,10 +764,10 @@ def ToRange(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Number of elements in a list or dictionary")
 def Len(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -804,7 +797,6 @@ def Len(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Check all arguments for equality, returns boolean")
 def TestEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -865,7 +857,6 @@ def TestEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Evaluate boolean AND of all arguments")
 def BoolAnd(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -911,7 +902,6 @@ def BoolAnd(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Evaluate logical OR of all arguments")
 def BoolOr(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -955,8 +945,44 @@ def BoolOr(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 
 ################################################################################
-def _DoToBool(_xValue):
+@tooltip("Evaluate logical NOT of all arguments")
+def BoolNot(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
 
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt != 1:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The boolean NOT function must have exactly 1 argument but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    bResult = None
+    xArg = _lArgs[0]
+    if isinstance(xArg, float):
+        bResult = xArg == 0.0
+
+    elif isinstance(xArg, int):
+        bResult = xArg == 0
+
+    elif isinstance(xArg, bool):
+        bResult = not xArg
+
+    else:
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Invalid element type of 'NOT' argument: {xArg}")
+    # endif
+
+    return bResult, False
+
+
+# enddef
+
+
+################################################################################
+def _DoToBool(_xValue):
     if isinstance(_xValue, dict):
         raise RuntimeError("Cannot convert dictionary to bool")
     # endif
@@ -974,10 +1000,10 @@ def _DoToBool(_xValue):
 # endif
 #
 
+
 ################################################################################
 @tooltip("Convert argument to bool")
 def ToBool(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1005,7 +1031,6 @@ def ToBool(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 ################################################################################
 def _DoToInt(_xValue):
-
     if isinstance(_xValue, dict):
         raise RuntimeError("Cannot convert dictionary to int")
     # endif
@@ -1026,7 +1051,6 @@ def _DoToInt(_xValue):
 ################################################################################
 @tooltip("Convert argument to integer")
 def ToInt(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1054,7 +1078,6 @@ def ToInt(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 ################################################################################
 def _DoToFloat(_xValue):
-
     if isinstance(_xValue, dict):
         raise RuntimeError("Cannot convert dictionary to int")
     # endif
@@ -1075,7 +1098,6 @@ def _DoToFloat(_xValue):
 ################################################################################
 @tooltip("Convert argument to float")
 def ToFloat(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1104,7 +1126,6 @@ def ToFloat(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Sort list given in first argument, second argument optional for reverse sort")
 def Sort(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1143,7 +1164,6 @@ def Sort(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Selects a list element based on a modulo circle. Cannot go out of bounds as long as the index is an integer.")
 def CircularSelect(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1188,7 +1208,6 @@ def CircularSelect(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("Join strings given as list in the first argument using the string given in the second argument as separator")
 def JoinStrings(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1226,7 +1245,6 @@ def JoinStrings(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 ################################################################################
 @tooltip("If argument 1 is true evaluate argument 2 else argument 3")
 def IfCall(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt < 2 or iArgCnt > 3:
@@ -1303,10 +1321,10 @@ def IfCall(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Set log path to argument")
 def SetLogPath(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     if not all(_lArgIsProc):
         return None, False
     # endif
@@ -1333,10 +1351,10 @@ def SetLogPath(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+
 ################################################################################
 @tooltip("Print argument to log")
 def Print(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
-
     iArgCnt = len(_lArgs)
 
     if iArgCnt == 0:
@@ -1403,6 +1421,7 @@ __ison_functions__ = {
     "eq": {"funcExec": TestEqual, "bLiteralArgs": False},
     "if": {"funcExec": IfCall, "bLiteralArgs": True},
     "or": {"funcExec": BoolOr, "bLiteralArgs": False},
+    "not": {"funcExec": BoolNot, "bLiteralArgs": False},
     #####################################################################
     # String
     "join": {"funcExec": JoinStrings, "bLiteralArgs": False},
