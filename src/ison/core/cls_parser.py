@@ -500,7 +500,23 @@ class CParser:
     ################################################################################
     def AddWarning(self, _eType: EWarningType, _sKey: str):
         sCtx = self._GetParseContextString()
-        self.xWarnings.Add(CWarning(_eType=_eType, _sKey=_sKey, _sCtx=sCtx))
+
+        sShortCtx: str = None
+        if _eType == EWarningType.UNDEF_VAR:
+            # Store information that variable could not be fully processed
+            lParentVars: str = []
+            for xPc in reversed(self.lParseContext):
+                if xPc.eContext == EParseContext.VAR:
+                    lParentVars.append(xPc.sValue)
+                # endif
+            # endfor
+
+            if len(lParentVars) > 0:
+                sShortCtx = "required by " + " < ".join([f"'{x}'" for x in lParentVars])
+            # endif
+        # endif
+
+        self.xWarnings.Add(CWarning(_eType=_eType, _sKey=_sKey, _sCtx=sCtx, _sShortCtx=sShortCtx))
 
     # enddef
 
@@ -690,6 +706,7 @@ class CParser:
         # endif
 
         self._bIsFullyProcessed: bool = True
+
         self.ClearVarLocals()
         self.ClearFuncLocals()
 
@@ -2066,10 +2083,6 @@ class CParser:
             # endif
         # endif
 
-        if bFound is False and bHasVars is True:
-            self.AddWarning(EWarningType.UNDEF_VAR, _sKey)
-        # endif
-
         return xNewVal, bFound, bIsProc
 
     # enddef
@@ -2167,6 +2180,10 @@ class CParser:
 
             elif bFound is False:
                 xNewVal = _xValue.get(sKey)
+
+                if xNewVal is None:
+                    self.AddWarning(EWarningType.UNDEF_VAR, sKey)
+                # endif
             # endif
 
             if xNewVal is None:

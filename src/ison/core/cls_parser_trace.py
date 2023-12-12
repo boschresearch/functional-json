@@ -65,6 +65,7 @@ class CParseContextElement(NamedTuple):
 
 # endclass
 
+
 ####################################################################################
 class EWarningType(enum.Enum):
     NONE = enum.auto()
@@ -76,10 +77,11 @@ class EWarningType(enum.Enum):
 
 ####################################################################################
 class CWarning:
-    def __init__(self, *, _eType: EWarningType, _sKey: str, _sCtx: str = None):
+    def __init__(self, *, _eType: EWarningType, _sKey: str, _sCtx: str = None, _sShortCtx: str = None):
         self.eType = _eType
         self.sKey = _sKey
         self.sCtx = _sCtx
+        self.sShortCtx = _sShortCtx
 
     # enddef
 
@@ -90,6 +92,11 @@ class CWarning:
         else:
             sMsg = "Unknown warning type"
         # endif
+
+        if isinstance(self.sShortCtx, str) and len(self.sShortCtx) > 0:
+            sMsg += f": {self.sShortCtx}"
+        # endif
+
         if isinstance(self.sCtx, str) and len(self.sCtx) > 0:
             sMsg += "\n" + self.sCtx
         # endif
