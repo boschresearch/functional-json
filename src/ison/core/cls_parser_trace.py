@@ -132,16 +132,48 @@ class CWarningList:
 
     # enddef
 
-    def __str__(self):
+    def FilterList(self, _dicExclude: dict[EWarningType, list[str]]) -> "CWarningList":
+        xNewList = CWarningList()
+        for eType, dicWarn in self.dicWarnType.items():
+            lExcludeKeys: list[str] = []
+            if eType in _dicExclude:
+                lExcludeKeys = _dicExclude[eType]
+            # endif
+            for sKey, xWarn in dicWarn.items():
+                if sKey in lExcludeKeys:
+                    continue
+                # endif
+                xNewList.Add(xWarn)
+            # endfor
+        # endfor
+
+        return xNewList
+
+    # enddef
+
+    def ToString(self, _dicExclude: Optional[dict[EWarningType, list[str]]] = None) -> str:
         sMsg = ""
         for eType in self.dicWarnType:
+            lExcludeKeys: list[str] = []
+            if isinstance(_dicExclude, dict) and eType in _dicExclude:
+                lExcludeKeys = _dicExclude[eType]
+            # endif
+
             dicWarn: dict[str] = self.dicWarnType[eType]
             for sKey in dicWarn:
+                if sKey in lExcludeKeys:
+                    continue
+                # endif
                 warnX: CWarning = dicWarn[sKey]
                 sMsg += warnX.sMessage + "\n"
             # endfor
         # endfor
         return sMsg
+
+    # enddef
+
+    def __str__(self):
+        return self.ToString()
 
     # enddef
 

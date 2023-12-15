@@ -27,6 +27,7 @@
 
 from .core.cls_parser import CParser as Parser
 from .core.cls_parser_error import CParserError as ParserError
+from .core.cls_parser_trace import EWarningType
 from .core import lambda_parser
 from . import util
 from . import run
