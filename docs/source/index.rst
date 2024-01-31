@@ -32,6 +32,7 @@ ISON - Functional JSON
 
    language
    functions
+   parser
    license
 
 
