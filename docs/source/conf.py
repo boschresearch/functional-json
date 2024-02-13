@@ -70,6 +70,8 @@ myst_enable_extensions = [
     "dollarmath",
 ]
 
+myst_heading_anchors = 3
+
 myst_substitutions = {"ProjectName": project}
 
 # Add any paths that contain templates here, relative to this directory.
