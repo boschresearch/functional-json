@@ -25,9 +25,11 @@ ISON - Functional JSON
 ===========================================
 *A JSON compatible functional programming language*
 
+If you are writing Catharsys configurations, there are some additional functions you can use. 
+See :external+image-render-base:doc:`ison-functions`.
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Contents:
 
    language
