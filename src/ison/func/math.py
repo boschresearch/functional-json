@@ -172,6 +172,68 @@ def SubValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 
 ################################################################################
+@tooltip("Calculate division of the two arguments")
+def DivValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt != 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="Function 'sub': exactly 2 arguments are expected but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    lNewArgs = None
+    if any((isinstance(x, float) for x in _lArgs)) or all((isinstance(x, str) for x in _lArgs)):
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of subtraction elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+
+    elif any((isinstance(x, int) for x in _lArgs)):
+        try:
+            lNewArgs = [int(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of subtraction elements to 'int': {}".format(str(xEx)),
+            )
+        # endtry
+
+    else:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="Function 'sum': given value types cannot be added: {}".format(_lArgs),
+        )
+    # endif
+
+    xValue = lNewArgs[0] / lNewArgs[1]
+
+    if isinstance(xValue, float):
+        if xValue == math.trunc(xValue):
+            xResult = int(xValue)
+        else:
+            xResult = xValue
+        # endif
+    else:
+        xResult = xValue
+    # endif
+
+    return xResult, False
+
+
+# enddef
+
+
+################################################################################
 @tooltip("Evalute product of all arguments")
 def ProdValues(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
     if not all(_lArgIsProc):
@@ -892,6 +954,7 @@ def RandomFuncGrp(
 __ison_functions__ = {
     "sum": {"funcExec": SumValues, "bLiteralArgs": False},
     "sub": {"funcExec": SubValues, "bLiteralArgs": False},
+    "div": {"funcExec": DivValues, "bLiteralArgs": False},
     "prod": {"funcExec": ProdValues, "bLiteralArgs": False},
     "mod": {"funcExec": ModValues, "bLiteralArgs": False},
     "rand.*": {"funcExec": RandomFuncGrp, "bLiteralArgs": False},
