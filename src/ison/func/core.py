@@ -917,22 +917,15 @@ def BoolOr(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
     bResult = False
     for xArg in _lArgs:
-        if isinstance(xArg, float):
-            if xArg != 0.0:
+        if isinstance(xArg, str):
+            iVal: int | None = convert.ToInt(xArg, bDoRaise=False)
+            if iVal is not None and iVal != 0:
                 bResult = True
                 break
-            # endif
-
-        elif isinstance(xArg, int):
-            if xArg != 0:
+            bVal: bool = convert.ToBool(xArg)
+            if bVal:
                 bResult = True
                 break
-
-        elif isinstance(xArg, bool):
-            if xArg is True:
-                bResult = True
-                break
-
         else:
             raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Invalid element type in 'OR' argument list")
         # endif
