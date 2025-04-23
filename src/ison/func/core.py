@@ -793,6 +793,52 @@ def Len(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+################################################################################
+@tooltip("Get element from dictionary or list. If the element is not found, return a default value (third argument).")
+def Get(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt != 3:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="Expect exactly 3 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    xKey = _lArgs[1]
+    xDefault = _lArgs[2]
+
+    if isinstance(_lArgs[0], dict):
+        dicData: dict = _lArgs[0]
+        if xKey in dicData:
+            return dicData[xKey], False
+        # endif
+    
+    elif isinstance(_lArgs[0], list):
+        try:
+            iIdx = int(xKey)
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Function 'get': argument 2 cannot be converted to integer",
+                xChildEx=xEx,
+            )
+        # endtry
+        if iIdx >= 0 and iIdx < len(_lArgs[0]):
+            return _lArgs[0][iIdx], False
+        # endif
+    
+    else:
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Argument 1 must be a list or dictionary")
+    # endif
+
+    return xDefault, False
+# enddef
+
 
 ################################################################################
 @tooltip("Check all arguments for equality, returns boolean")
@@ -853,6 +899,41 @@ def TestEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+################################################################################
+@tooltip("Check whether first argument is contained in all other arguments, returns boolean")
+def TestContains(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The contains function must have at least 2 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    xTest = _lArgs[0]
+
+    for xArg in _lArgs[1:]:
+        if isinstance(xArg, list) or isinstance(xArg, dict):
+            if xTest not in xArg:
+                return False, False
+            # endif
+
+        elif isinstance(xArg, str):
+            if xTest not in xArg:
+                return False, False
+            # endif
+
+        else:
+            raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Invalid element type in argument list")
+        # endif
+    # endfor
+
+    return True, False
 
 ################################################################################
 @tooltip("Evaluate boolean AND of all arguments")
@@ -1408,10 +1489,12 @@ __ison_functions__ = {
     "sort": {"funcExec": Sort, "bLiteralArgs": False},
     "len": {"funcExec": Len, "bLiteralArgs": False},
     "circularselect": {"funcExec": CircularSelect, "bLiteralArgs": False},
+    "get": {"funcExec": Get, "bLiteralArgs": False},
     #####################################################################
     # Logic Functions
     "and": {"funcExec": BoolAnd, "bLiteralArgs": False},
     "eq": {"funcExec": TestEqual, "bLiteralArgs": False},
+    "in": {"funcExec": TestContains, "bLiteralArgs": False},
     "if": {"funcExec": IfCall, "bLiteralArgs": True},
     "or": {"funcExec": BoolOr, "bLiteralArgs": False},
     "not": {"funcExec": BoolNot, "bLiteralArgs": False},
