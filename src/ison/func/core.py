@@ -384,7 +384,7 @@ def LambdaCall_ForEach_Where(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
             lNewArg = [xArg]
         # endif
         xResult = lp.Parse(xFunc, lNewArg, funcProcess=SubProcess)
-        if isinstance(xResult, bool) and xResult is True:
+        if convert.ToBool(xResult):
             lResults.append(xArg)
         # endif
     # endfor
@@ -890,9 +890,11 @@ def TestEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
     if isinstance(xTest, list) or isinstance(xTest, dict):
         raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Comparison of lists and dicts not implemented")
+    elif isinstance(xTest, str):
+        xTest = text.StripLiteralString(xTest)
     # endif
 
-    xResult = all((x == xTest for x in lNewArgs[1:]))
+    xResult = all((text.StripLiteralString(x) == xTest for x in lNewArgs[1:]))
 
     return xResult, False
 
@@ -1464,6 +1466,108 @@ def Print(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 
 ################################################################################
+@tooltip("Search regex pattern in string")
+def _DoReIsMatch(_xParser, _lArgs, *, sFuncName):
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt != 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg=f"Match function must exactly 2 arguments but {iArgCnt} were given"
+        )
+    # endif
+
+    sPattern = _lArgs[0]
+    sValue = _lArgs[1]
+
+    if not isinstance(sPattern, str):
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="First argument must be a string")
+    # endif
+
+    if not isinstance(sValue, str):
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Second argument must be a string")
+    # endif
+
+    sPattern = text.StripLiteralString(sPattern)
+    sValue = text.StripLiteralString(sValue)
+
+    xMatch = re.search(sPattern, sValue)
+    xResult = xMatch is not None
+    return xResult
+
+
+# enddef
+
+################################################################################
+@tooltip("Full match of regex pattern with string")
+def _DoReIsFullMatch(_xParser, _lArgs, *, sFuncName):
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt != 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg=f"Match function must exactly 2 arguments but {iArgCnt} were given"
+        )
+    # endif
+
+    sPattern = _lArgs[0]
+    sValue = _lArgs[1]
+
+    if not isinstance(sPattern, str):
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="First argument must be a string")
+    # endif
+
+    if not isinstance(sValue, str):
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Second argument must be a string")
+    # endif
+
+    sPattern = text.StripLiteralString(sPattern)
+    sValue = text.StripLiteralString(sValue)
+
+    xMatch = re.fullmatch(sPattern, sValue)
+
+    xResult = xMatch is not None
+    return xResult
+
+
+# enddef
+
+################################################################################
+@tooltip("Various regex functions: re.is_match")
+def RegExFuncGrp(
+    _xParser,
+    _lArgs: list,
+    _lArgIsProc: list[bool],
+    *,
+    sFuncName: str,
+    lFuncParts: list[str],
+):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    sSubFunc: str = ".".join(lFuncParts[1:])
+
+    dicSubFuncs = {
+        "is_match": _DoReIsMatch,
+        "is_full_match": _DoReIsFullMatch,
+    }
+
+    if sSubFunc not in dicSubFuncs:
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg=f"Function {sFuncName} not defined")
+    # endif
+
+    xResult = dicSubFuncs[sSubFunc](_xParser, _lArgs, sFuncName=sFuncName)
+
+    return xResult, False
+
+
+# enddef
+
+
+################################################################################
 __ison_functions__ = {
     #####################################################################
     "": {"funcExec": Reference, "bLiteralArgs": True},
@@ -1502,6 +1606,9 @@ __ison_functions__ = {
     # String
     "join": {"funcExec": JoinStrings, "bLiteralArgs": False},
     "str": {"funcExec": ToString, "bLiteralArgs": False},
+    #####################################################################
+    # RegEx
+    "re.*": {"funcExec": RegExFuncGrp, "bLiteralArgs": False},
     #####################################################################
     # Conversion functions
     "bool": {"funcExec": ToBool, "bLiteralArgs": False},
