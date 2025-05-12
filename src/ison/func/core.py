@@ -76,6 +76,7 @@ def Reference(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
         )
     # endif
 
+    xFunc = None
     bProcessPath = None
     xArg = _lArgs[0]
     # Due to the function $*{}, the argument can be a structure

@@ -198,6 +198,19 @@ class CParserError_DictSel(CParserError):
 
 # endclass
 
+###########################################################################################
+class CParserError_DictItem(CParserError):
+    def __init__(self, *, xData, xId, xChildEx=None):
+
+        sMsg = "Dictionary element '{}' -> {}".format(str(xId), CParserError.ToTypename(xData))
+
+        super().__init__(sMsg=sMsg, sType="dict-item", xData=xData, xSelect=xId, xChildEx=xChildEx)
+
+    # enddef
+
+
+# endclass
+
 
 ###########################################################################################
 class CParserError_ListSel(CParserError):

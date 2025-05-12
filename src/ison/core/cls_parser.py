@@ -42,6 +42,7 @@ from .cls_parser_error import (
     CParserError,
     CParserError_Message,
     CParserError_DictSel,
+    CParserError_DictItem,
     CParserError_ListSel,
     CParserError_ProcArgStr,
     CParserError_ProcFunc,
@@ -61,6 +62,7 @@ from .defines import (
     rePureVar,
     reSlice,
     reLambdaFunc,
+    reLambdaPar,
     reNamedArg,
     reLiteralArg,
     reUnrollArg,
@@ -1512,6 +1514,9 @@ class CParser:
                 raise CParserError_KeyStrMatch(sString=_sObjId, dicMatch=dicMatch, xChildEx=xEx)
             # endtry
 
+            # print(f"Parse key in dict: {_sObjId}")
+            # print(f"  xVarData: {xVarData}")
+
             # If the variable is not in the replacement dictionary...
             if xVarData is None or bIsLiteral is True:
                 # ... then process the key's content and leave the key unchanged, as it may be processed later.
@@ -1527,7 +1532,7 @@ class CParser:
                         bIsProc = self._ProcessDictItem(_dicResult, sNewObjId, _xData, lPath=lPath)
                         bIsProcessed = bIsProcessed and bIsProc
                     except Exception as xEx:
-                        raise CParserError_DictSel(dicData=_xData, xId=sNewObjId, xChildEx=xEx)
+                        raise CParserError_DictItem(xData=_xData, xId=sNewObjId, xChildEx=xEx)
                     # endtry
 
                 elif isinstance(xVarData, list):
@@ -1571,7 +1576,7 @@ class CParser:
                             bIsProc = self._ProcessDictItem(_dicResult, sNewObjId, _xData, lPath=lPath)
                             bIsProcessed = bIsProcessed and bIsProc
                         except Exception as xEx:
-                            raise CParserError_DictSel(dicData=_xData, xId=sNewObjId, xChildEx=xEx)
+                            raise CParserError_DictItem(xData=_xData, xId=sNewObjId, xChildEx=xEx)
                         # endtry
 
                         del self.dicVarData[sCtxId]
@@ -1615,7 +1620,7 @@ class CParser:
                             bIsProcessed = bIsProcessed and bIsProc
 
                         except Exception as xEx:
-                            raise CParserError_DictSel(dicData=_xData, xId=sNewObjId, xChildEx=xEx)
+                            raise CParserError_DictItem(xData=_xData, xId=sNewObjId, xChildEx=xEx)
                         # endtry
 
                         del self.dicVarData[sCtxId]
@@ -1801,6 +1806,13 @@ class CParser:
             self._EnterParseContext(EParseContext.ARG, sArg)
             # dummy loop to enable break to jump to end of while
             while True:
+                xMatch = reLambdaPar.match(sArg)
+                if xMatch is not None:
+                    lVarData.append(sArg)
+                    lVarIsProc.append(False)
+                    break
+                # endif
+
                 xMatch = reLiteralArg.match(sArg)
                 if xMatch is not None:
                     sArg = sArg.strip()
