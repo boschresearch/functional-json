@@ -893,9 +893,72 @@ def TestEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
         raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Comparison of lists and dicts not implemented")
     elif isinstance(xTest, str):
         xTest = text.StripLiteralString(xTest)
+        xResult = all((text.StripLiteralString(x) == xTest for x in lNewArgs[1:]))
+    else:
+        xResult = all((x == xTest for x in lNewArgs[1:]))
     # endif
 
-    xResult = all((text.StripLiteralString(x) == xTest for x in lNewArgs[1:]))
+    return xResult, False
+
+
+# enddef
+
+################################################################################
+@tooltip("Check if at least one argument is not equal to all the others, returns boolean")
+def TestNotEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The non-equality function must have at least 2 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    lNewArgs = None
+    if any((isinstance(x, float) for x in _lArgs)):
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+
+    elif any((isinstance(x, int) for x in _lArgs)):
+        try:
+            lNewArgs = [int(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'int': {}".format(str(xEx)),
+            )
+        # endtry
+
+    else:
+        lNewArgs = _lArgs
+    # endif
+
+    xTest = lNewArgs[0]
+
+    # Test wether all elements are of the same type
+    if not all((isinstance(x, type(xTest)) for x in lNewArgs[1:])):
+        return False, False
+    # endif
+
+    if isinstance(xTest, list) or isinstance(xTest, dict):
+        raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Comparison of lists and dicts not implemented")
+    elif isinstance(xTest, str):
+        xTest = text.StripLiteralString(xTest)
+        xResult = any((text.StripLiteralString(x) != xTest for x in lNewArgs[1:]))
+    else:
+        xResult = any((x != xTest for x in lNewArgs[1:]))
+    # endif
 
     return xResult, False
 
@@ -956,7 +1019,17 @@ def BoolAnd(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
     bResult = True
     for xArg in _lArgs:
-        if isinstance(xArg, float):
+        if isinstance(xArg, str):
+            iVal: int | None = convert.ToInt(xArg, bDoRaise=False)
+            if iVal is not None and iVal != 0:
+                bResult = True
+                break
+            bVal: bool = convert.ToBool(xArg)
+            if bVal:
+                bResult = True
+                break
+
+        elif isinstance(xArg, float):
             if xArg == 0.0:
                 bResult = False
                 break
@@ -1010,6 +1083,21 @@ def BoolOr(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
             if bVal:
                 bResult = True
                 break
+        elif isinstance(xArg, float):
+            if xArg != 0.0:
+                bResult = True
+                break
+            # endif
+        elif isinstance(xArg, int):
+            if xArg != 0:
+                bResult = True
+                break
+            # endif
+        elif isinstance(xArg, bool):
+            if xArg is True:
+                bResult = True
+                break
+            # endif
         else:
             raise CParserError_FuncMessage(sFunc=sFuncName, sMsg="Invalid element type in 'OR' argument list")
         # endif
@@ -1039,7 +1127,15 @@ def BoolNot(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
     bResult = None
     xArg = _lArgs[0]
-    if isinstance(xArg, float):
+    if isinstance(xArg, str):
+        iVal = convert.ToInt(xArg, bDoRaise=False)
+        if iVal is not None:
+            bResult = iVal == 0
+        else:    
+            bResult = not convert.ToBool(xArg)
+        # endif
+
+    elif isinstance(xArg, float):
         bResult = xArg == 0.0
 
     elif isinstance(xArg, int):
@@ -1599,6 +1695,7 @@ __ison_functions__ = {
     # Logic Functions
     "and": {"funcExec": BoolAnd, "bLiteralArgs": False},
     "eq": {"funcExec": TestEqual, "bLiteralArgs": False},
+    "neq": {"funcExec": TestNotEqual, "bLiteralArgs": False},
     "in": {"funcExec": TestContains, "bLiteralArgs": False},
     "if": {"funcExec": IfCall, "bLiteralArgs": True},
     "or": {"funcExec": BoolOr, "bLiteralArgs": False},
