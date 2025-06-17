@@ -40,6 +40,28 @@ def AssertDisjunctVarDicts(_dicA, _dicB, _sNameA, _sNameB):
 
 # enddef
 
+########################################################################
+# Recursively update target dictionary with source dictionary
+def RecursiveUpdateDict(_dicTrg, _dicSrc):
+
+    if not isinstance(_dicTrg, dict) or not isinstance(_dicSrc, dict):
+        raise RuntimeError("Invalid arguments: expect dictionaries")
+    # endif
+
+    for sSrcKey in _dicSrc:
+        if (
+            sSrcKey in _dicTrg
+            and isinstance(_dicTrg[sSrcKey], dict)
+            and isinstance(_dicSrc[sSrcKey], dict)
+        ):
+            RecursiveUpdateDict(_dicTrg[sSrcKey], _dicSrc[sSrcKey])
+        else:
+            _dicTrg[sSrcKey] = _dicSrc[sSrcKey]
+        # endif
+    # endfor
+
+
+# enddef
 
 ################################################################################
 # update dictionary and potentially throw exception when overwriting a variable

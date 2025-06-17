@@ -29,6 +29,7 @@ import re
 import json
 
 from ..util import text, convert
+from ..util.data import RecursiveUpdateDict
 from ..core import lambda_parser as lp
 from ..core.defines import reLiteralString
 from ..core import var_nt
@@ -385,7 +386,11 @@ def LambdaCall_ForEach_Where(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
             lNewArg = [xArg]
         # endif
         xResult = lp.Parse(xFunc, lNewArg, funcProcess=SubProcess)
-        if convert.ToBool(xResult):
+        if isinstance(xResult, list):
+            if convert.ToBool(xResult[0]):
+                lResults.append(xResult[1])
+            # endif
+        elif convert.ToBool(xResult):
             lResults.append(xArg)
         # endif
     # endfor
@@ -699,6 +704,44 @@ def ToUnion(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
 
 # enddef
 
+################################################################################
+@tooltip("Union of lists or dictionaries")
+def ToRecursiveUnion(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 1:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The union function must have at least 1 argument but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    xResult = None
+
+    # if all arguments are dictionaries, then combine these
+    # in a single dictionary using sequential recursive update().
+    if all((isinstance(x, dict) for x in _lArgs)):
+        xResult = {}
+        for dicSub in _lArgs:
+            RecursiveUpdateDict(xResult, dicSub)
+        # endfor
+
+    else:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The recursive union function only supports dictionaries as arguments",
+        )
+    # endif
+
+    return xResult, False
+
+
+# enddef
+
 
 ################################################################################
 @tooltip(
@@ -959,6 +1002,231 @@ def TestNotEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
     else:
         xResult = any((x != xTest for x in lNewArgs[1:]))
     # endif
+
+    return xResult, False
+
+
+# enddef
+
+################################################################################
+@tooltip("Check whether the first argument is greater or equal than all remaining arguments, returns boolean")
+def TestGreaterEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The greater or equal function must have at least 2 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    lNewArgs = None
+    if any((isinstance(x, float) for x in _lArgs)):
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+
+    elif any((isinstance(x, int) for x in _lArgs)):
+        try:
+            lNewArgs = [int(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'int': {}".format(str(xEx)),
+            )
+        # endtry
+
+    else:
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+    # endif
+
+    xTest = lNewArgs[0]
+    xResult = all((xTest >= x for x in lNewArgs[1:]))
+
+    return xResult, False
+
+
+# enddef
+
+################################################################################
+@tooltip("Check whether the first argument is greater than all remaining arguments, returns boolean")
+def TestGreater(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The greater function must have at least 2 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    lNewArgs = None
+    if any((isinstance(x, float) for x in _lArgs)):
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+
+    elif any((isinstance(x, int) for x in _lArgs)):
+        try:
+            lNewArgs = [int(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'int': {}".format(str(xEx)),
+            )
+        # endtry
+
+    else:
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+    # endif
+
+    xTest = lNewArgs[0]
+    xResult = all((xTest > x for x in lNewArgs[1:]))
+
+    return xResult, False
+
+
+# enddef
+
+################################################################################
+@tooltip("Check whether the first argument is less or equal than all remaining arguments, returns boolean")
+def TestLessEqual(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The less or equal function must have at least 2 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    lNewArgs = None
+    if any((isinstance(x, float) for x in _lArgs)):
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+
+    elif any((isinstance(x, int) for x in _lArgs)):
+        try:
+            lNewArgs = [int(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'int': {}".format(str(xEx)),
+            )
+        # endtry
+
+    else:
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+    # endif
+
+    xTest = lNewArgs[0]
+    xResult = all((xTest <= x for x in lNewArgs[1:]))
+
+    return xResult, False
+
+
+# enddef
+
+
+################################################################################
+@tooltip("Check whether the first argument is less than all remaining arguments, returns boolean")
+def TestLess(_xParser, _lArgs, _lArgIsProc, *, sFuncName):
+    if not all(_lArgIsProc):
+        return None, False
+    # endif
+
+    iArgCnt = len(_lArgs)
+
+    if iArgCnt < 2:
+        raise CParserError_FuncMessage(
+            sFunc=sFuncName,
+            sMsg="The less function must have at least 2 arguments but {0} were given".format(iArgCnt),
+        )
+    # endif
+
+    lNewArgs = None
+    if any((isinstance(x, float) for x in _lArgs)):
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+
+    elif any((isinstance(x, int) for x in _lArgs)):
+        try:
+            lNewArgs = [int(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'int': {}".format(str(xEx)),
+            )
+        # endtry
+
+    else:
+        try:
+            lNewArgs = [float(x) for x in _lArgs]
+        except Exception as xEx:
+            raise CParserError_FuncMessage(
+                sFunc=sFuncName,
+                sMsg="Error converting list of comparison elements to 'float': {}".format(str(xEx)),
+            )
+        # endtry
+   # endif
+
+    xTest = lNewArgs[0]
+    xResult = all((xTest < x for x in lNewArgs[1:]))
 
     return xResult, False
 
@@ -1686,6 +1954,7 @@ __ison_functions__ = {
     "enumerate": {"funcExec": Enumerate, "bLiteralArgs": False},
     "group": {"funcExec": Group, "bLiteralArgs": False},
     "union": {"funcExec": ToUnion, "bLiteralArgs": False},
+    "runion": {"funcExec": ToRecursiveUnion, "bLiteralArgs": False},
     "range": {"funcExec": ToRange, "bLiteralArgs": False},
     "sort": {"funcExec": Sort, "bLiteralArgs": False},
     "len": {"funcExec": Len, "bLiteralArgs": False},
@@ -1696,6 +1965,10 @@ __ison_functions__ = {
     "and": {"funcExec": BoolAnd, "bLiteralArgs": False},
     "eq": {"funcExec": TestEqual, "bLiteralArgs": False},
     "neq": {"funcExec": TestNotEqual, "bLiteralArgs": False},
+    "gt": {"funcExec": TestGreater, "bLiteralArgs": False},
+    "ge": {"funcExec": TestGreaterEqual, "bLiteralArgs": False},
+    "lt": {"funcExec": TestLess, "bLiteralArgs": False},
+    "le": {"funcExec": TestLessEqual, "bLiteralArgs": False},
     "in": {"funcExec": TestContains, "bLiteralArgs": False},
     "if": {"funcExec": IfCall, "bLiteralArgs": True},
     "or": {"funcExec": BoolOr, "bLiteralArgs": False},
